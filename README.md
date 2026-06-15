@@ -360,87 +360,116 @@ poetry run pytest tests/ --cov=src --cov-report=html
 ## Project Structure
 
 ```
-newslens/
-├── main.py                              # CLI entry point
-├── conftest.py                          # Shared pytest fixtures
-├── core/
-│   ├── constants.py                     # Shared constants (PUBLISHERS, INTENT_TYPES, FRAME_TYPES)
+news-agentic-rag/
+├── main.py                              # Pipeline entry point — starts M0 pw.run() + launches M5 FastAPI server
+├── conftest.py                          # Shared pytest fixtures (mock VectorStore, sample IntentPayloads)
+├── README.md
+├── pyproject.toml
+├── .env.example
+├── src/
+│   ├── __init__.py
 │   ├── m0_ingestion/
+│   │   ├── __init__.py
 │   │   ├── connectors/
-│   │   │   ├── newsapi_connector.py     # pw.io NewsAPI.ai polling connector
-│   │   │   ├── rss_connector.py         # pw.io RSS feedparser connector
-│   │   │   └── scraper_connector.py     # Playwright async scraper (Tier-3 fallback)
+│   │   │   ├── newsapi_connector.py     # pw.io NewsAPI connector
+│   │   │   ├── rss_connector.py         # pw.io RSS feed connector
+│   │   │   └── scraper_connector.py     # Playwright-based scraper (Tier-3 fallback)
 │   │   ├── processors/
-│   │   │   ├── normalizer.py            # HTML strip, dedup, publisher canonical mapping
+│   │   │   ├── normalizer.py            # HTML strip, dedup, publisher normalization
 │   │   │   ├── chunker.py               # 512-token semantic chunker with 64-token overlap
-│   │   │   └── embedder.py              # OpenAI + local embedding wrapper with fallback
-│   │   ├── vector_store.py              # Pathway VectorStoreServer setup and lifecycle
+│   │   │   └── embedder.py              # OpenAI + local embedder wrapper with fallback
+│   │   ├── vector_store.py              # Pathway VectorStoreServer setup
 │   │   ├── document_store.py            # Pathway DocumentStore metadata layer
-│   │   └── pipeline.py                  # pw.run() entrypoint — assembles full M0 DAG
+│   │   └── pipeline.py                  # Assembles full M0 pw.run() pipeline
 │   ├── m1_intent/
+│   │   ├── __init__.py
 │   │   ├── classifier.py                # LLM intent classifier with Pydantic validation
-│   │   ├── schemas.py                   # IntentPayload, IntentType, UserQuery
+│   │   ├── schemas.py                   # IntentType, IntentPayload
 │   │   └── prompts.py                   # Few-shot classification prompt templates
 │   ├── m2_agents/
+│   │   ├── __init__.py
 │   │   ├── graph.py                     # LangGraph StateGraph definition
 │   │   ├── state.py                     # AgentState TypedDict
-│   │   ├── supervisor.py                # Supervisor routing node
-│   │   ├── timeline_agent.py            # Timeline specialist node
-│   │   ├── bias_agent.py                # Bias specialist node
-│   │   ├── summary_agent.py             # Summary specialist node
+│   │   ├── supervisor.py                # Supervisor agent node
+│   │   ├── timeline_agent.py            # Timeline specialist agent node
+│   │   ├── bias_agent.py                # Bias specialist agent node
+│   │   ├── summary_agent.py             # Summary specialist agent node
+│   │   ├── schemas.py                   # RetrievedChunk, SummaryResult, TraceEntry, AnalysisMetadata, AnalysisResult
 │   │   ├── retrieval/
-│   │   │   ├── manager.py               # 4-tier autonomous retrieval + fallback cascade
-│   │   │   ├── pathway_client.py        # Pathway VectorStore gRPC/HTTP client
+│   │   │   ├── manager.py               # RetrievalManager with 4-tier fallback cascade
+│   │   │   ├── pathway_client.py        # Pathway VectorStore client
 │   │   │   ├── bing_client.py           # Bing Search API v7 client (Tier-2)
 │   │   │   └── scraper_client.py        # Playwright scraper client (Tier-3)
 │   │   └── crag/
 │   │       ├── evaluator.py             # CRAG chunk grader (RELEVANT/AMBIGUOUS/IRRELEVANT)
 │   │       ├── rewriter.py              # LLM-based query rewriter for Tier-1 retry
-│   │       └── schemas.py               # CRAGGrade, GradeEnum
+│   │       └── schemas.py               # GradeEnum, CRAGGrade
 │   ├── m3_bias/
+│   │   ├── __init__.py
 │   │   ├── engine.py                    # BiasEngine orchestrator
 │   │   ├── sentiment.py                 # RoBERTa + VADER sentiment wrapper
 │   │   ├── framing.py                   # 5-frame LLM framing vector extractor
 │   │   ├── scoring.py                   # Weighted bias score formula
-│   │   └── schemas.py                   # BiasAnalysisResult, PublisherBiasProfile
+│   │   └── schemas.py                   # SentimentScores, FramingVector, PublisherBiasProfile, BiasAnalysisResult
 │   ├── m4_timeline/
+│   │   ├── __init__.py
 │   │   ├── synthesizer.py               # TimelineSynthesizer orchestrator
 │   │   ├── extractor.py                 # spaCy NER + LLM event JSON extractor
 │   │   ├── deduplicator.py              # Cosine similarity event clustering
-│   │   └── schemas.py                   # TimelineResult, TimelineEvent, EventConfidence
-│   └── m5_ui/
+│   │   └── schemas.py                   # EventConfidence, ArticleReference, TimelineEvent, TimelineResult
+│   ├── m5_ui/
+│   │   ├── __init__.py
+│   │   ├── api/
+│   │   │   ├── __init__.py
+│   │   │   ├── server.py                # FastAPI app — serves templates + REST /api/analyze
+│   │   │   └── routes.py                # POST /api/analyze, GET /api/health route handlers
+│   │   ├── templates/
+│   │   │   ├── index.html               # Query input page
+│   │   │   ├── results.html             # Analysis results page
+│   │   │   └── about.html               # About / methodology page
+│   │   └── static/
+│   │       ├── css/
+│   │       │   ├── main.css             # Global styles, layout, typography
+│   │       │   ├── components.css       # Cards, badges, tabs, panels
+│   │       │   └── animations.css       # Loading skeletons, transitions
+│   │       ├── js/
+│   │       │   ├── main.js              # Bootstrap, tab switching, global state
+│   │       │   ├── query.js             # Form submit → POST /api/analyze → render
+│   │       │   ├── bias_chart.js        # Chart.js heatmap + framing radar
+│   │       │   ├── timeline.js          # Custom horizontal scroll timeline
+│   │       │   └── trace_panel.js       # Collapsible agent trace step log
+│   │       └── assets/
+│   │           ├── images/              # Logo, icons
+│   │           └── fonts/               # Self-hosted web fonts
+│   └── shared/
 │       ├── __init__.py
-│       ├── api/
-│       │   ├── __init__.py
-│       │   ├── server.py                # FastAPI app — serves static + REST /api/analyze
-│       │   └── routes.py                # /api/analyze, /api/health route handlers
-│       ├── templates/
-│       │   ├── index.html               # Query input page
-│       │   ├── results.html             # Analysis results page
-│       │   └── about.html               # About / methodology page
-│       └── static/
-│           ├── css/
-│           │   ├── main.css             # Global styles, layout, typography
-│           │   ├── components.css       # Cards, badges, tabs, panels
-│           │   └── animations.css       # Loading skeletons, transitions
-│           ├── js/
-│           │   ├── main.js              # Bootstrap, tab switching, global state
-│           │   ├── query.js             # Form submit → POST /api/analyze → render
-│           │   ├── bias_chart.js        # Chart.js heatmap + framing radar
-│           │   ├── timeline.js          # Custom horizontal scroll timeline
-│           │   └── trace_panel.js       # Collapsible agent trace step log
-│           └── assets/
-│               ├── images/              # Logo, icons
-│               └── fonts/               # Self-hosted web fonts
-├── schemas/                             # 11 Pydantic v2 data contract models — REMOVED (schemas live inside each module)
+│       ├── config.py                    # pydantic-settings Config model
+│       ├── llm_factory.py               # LLM provider factory (OpenAI / Anthropic / Ollama)
+│       ├── logging.py                   # loguru structured logger setup
+│       └── exceptions.py                # Custom exception hierarchy
 ├── scripts/
 │   ├── run_pathway_pipeline.py          # Starts M0 pw.run() background process
 │   ├── run_website.sh                   # Starts M5 FastAPI server via uvicorn
 │   └── seed_test_data.py                # Seeds Pathway store with fixture articles
+├── docs/
+│   ├── architecture.md                  # Full architecture specification (this document)
+│   ├── api_reference.md                 # REST API reference for /api/analyze
+│   └── deployment_guide.md             # Docker / bare-metal deployment guide
 └── tests/
-    ├── unit/                            # Module-level isolation tests (5 files)
-    ├── integration/                     # Full pipeline tests with mocked VectorStore (3 files)
+    ├── __init__.py
+    ├── unit/                            # Module-level isolation tests (no network, no LLM)
+    │   ├── test_m0_normalizer.py
+    │   ├── test_m1_classifier.py
+    │   ├── test_m2_crag.py
+    │   ├── test_m3_bias.py
+    │   └── test_m4_timeline.py
+    ├── integration/                     # Full pipeline tests with mocked VectorStore
+    │   ├── test_e2e_bias_query.py
+    │   ├── test_e2e_timeline_query.py
+    │   └── test_fallback_cascade.py
     └── fixtures/                        # JSON fixture data for offline tests
+        ├── sample_articles.json
+        └── mock_newsapi_response.json
 ```
 
 ---
