@@ -11,7 +11,14 @@ NewsLens is a fully autonomous, multi-agent intelligence system built on **Pathw
 ## Quick Start
 
 ```bash
-# Ask about bias across publishers
+# Start the Pathway ingestion pipeline (background)
+poetry run python scripts/run_pathway_pipeline.py &
+
+# Start the web server
+poetry run bash scripts/run_website.sh
+# Then open http://localhost:8000 in your browser
+
+# Or run the CLI directly
 python main.py "How did Reuters and Fox News cover the US-China trade talks?"
 
 # Draw a timeline of an unfolding event
@@ -43,7 +50,7 @@ NewsLens is built as a modular six-module pipeline. Each module communicates thr
 | **M2** | Multi-Agent Router & Retrieval Manager | Routes `IntentPayload` to specialist agents via a LangGraph state machine; manages autonomous 4-tier retrieval fallback cascade and CRAG re-ranking | Partial |
 | **M3** | Bias & Sentiment Engine | Runs transformer-based sentiment per publisher, LLM framing vector extraction, and a weighted bias score formula — all numeric outputs are deterministic | Partial |
 | **M4** | Timeline Synthesizer | Extracts temporally anchored events via spaCy NER + LLM JSON pass, deduplicates by cosine similarity, and produces a source-attributed chronological timeline | Partial |
-| **M5** | Explanation & UI Engine | Streamlit app with an agent trace panel, Plotly bias heatmaps, Gantt timeline view, CRAG grade badges, fallback indicators, and confidence meters | Yes |
+| **M5** | Explanation & UI Engine | Browser-based web interface served by FastAPI — HTML templates, Vanilla CSS, Vanilla JS, Chart.js visualizations; exposes `POST /api/analyze` REST endpoint consumed by the frontend | Yes |
 
 ```
 Natural Language Query
@@ -72,8 +79,9 @@ Natural Language Query
          └────────────┬────────────┘
                       ▼
          [M5] Explanation & UI Engine
-         (Streamlit — Agent Trace Panel,
-          Bias Heatmap, Timeline, Sources)
+         (FastAPI server — templates/index.html,
+          templates/results.html, static CSS/JS,
+          Chart.js bias heatmap + timeline)
                       │
               Live Web Browser
 ```
@@ -157,8 +165,9 @@ Every `AnalysisResult` carries a full `agent_trace: list[TraceEntry]` so the Str
 | **HTTP Client** | `httpx` — async-first, retry support via `tenacity` |
 | **Retry Logic** | `tenacity` — exponential backoff for all external API calls |
 | **Data Validation** | `pydantic` v2 with strict validation across all 11 data contracts |
-| **UI Framework** | `streamlit` >=1.35 — agent trace panel, tabbed results, real-time streaming |
-| **Visualization** | `plotly` — interactive bias heatmaps, Gantt timeline charts, framing radar |
+| **UI Framework** | `fastapi` + Jinja2 | Latest | Lightweight ASGI server; serves HTML templates + REST `/api/analyze` |
+| **Frontend** | HTML5 + Vanilla CSS + Vanilla JS | — | No build step; zero npm dependencies; runs in any browser |
+| **Charts** | `Chart.js` (CDN) | >=4.0 | Client-side bias heatmap, framing radar, timeline — no server-side render |
 | **Logging** | `loguru` — structured logs, agent trace capture per session |
 | **Configuration** | `pydantic-settings` + `.env` — type-safe config, 12-factor compliant |
 | **Testing** | `pytest` + `pytest-asyncio` — full async test support |
@@ -195,8 +204,9 @@ ollama pull qwen2.5-coder:7b   # Optional code/reasoning tasks
 # 5. Start the Pathway ingestion pipeline (background process)
 poetry run python scripts/run_pathway_pipeline.py &
 
-# 6. Launch the Streamlit UI
-poetry run streamlit run src/m5_ui/app.py
+# 6. Launch the web server
+poetry run bash scripts/run_website.sh
+# Open http://localhost:8000
 ```
 
 ---
@@ -243,7 +253,13 @@ CRAG_TOP_K=15                           # Chunks retrieved per query
 ### CLI Commands
 
 ```bash
-# Standard bias detection query
+# Start the ingestion pipeline
+poetry run python scripts/run_pathway_pipeline.py &
+
+# Start the web server (http://localhost:8000)
+poetry run bash scripts/run_website.sh
+
+# Or use the CLI directly for bias detection
 poetry run python main.py "How did Reuters and Fox News cover the US-China trade talks?"
 
 # Force timeline intent
@@ -395,17 +411,33 @@ newslens/
 │   │   ├── deduplicator.py              # Cosine similarity event clustering
 │   │   └── schemas.py                   # TimelineResult, TimelineEvent, EventConfidence
 │   └── m5_ui/
-│       ├── app.py                       # Streamlit main application entrypoint
-│       ├── components/
-│       │   ├── trace_panel.py           # Agent reasoning trace sidebar
-│       │   ├── bias_heatmap.py          # Plotly publisher x sentiment heatmap
-│       │   ├── timeline_view.py         # Plotly Gantt-style event timeline
-│       │   ├── summary_view.py          # Cross-publisher consensus panel
-│       │   └── source_cards.py          # Article cards with CRAG grade badges
-│       └── session.py                   # st.session_state lifecycle management
+│       ├── __init__.py
+│       ├── api/
+│       │   ├── __init__.py
+│       │   ├── server.py                # FastAPI app — serves static + REST /api/analyze
+│       │   └── routes.py                # /api/analyze, /api/health route handlers
+│       ├── templates/
+│       │   ├── index.html               # Query input page
+│       │   ├── results.html             # Analysis results page
+│       │   └── about.html               # About / methodology page
+│       └── static/
+│           ├── css/
+│           │   ├── main.css             # Global styles, layout, typography
+│           │   ├── components.css       # Cards, badges, tabs, panels
+│           │   └── animations.css       # Loading skeletons, transitions
+│           ├── js/
+│           │   ├── main.js              # Bootstrap, tab switching, global state
+│           │   ├── query.js             # Form submit → POST /api/analyze → render
+│           │   ├── bias_chart.js        # Chart.js heatmap + framing radar
+│           │   ├── timeline.js          # Custom horizontal scroll timeline
+│           │   └── trace_panel.js       # Collapsible agent trace step log
+│           └── assets/
+│               ├── images/              # Logo, icons
+│               └── fonts/               # Self-hosted web fonts
 ├── schemas/                             # 11 Pydantic v2 data contract models
 ├── scripts/
 │   ├── run_pathway_pipeline.py          # Starts M0 pw.run() background process
+│   ├── run_website.sh                   # Starts M5 FastAPI server via uvicorn
 │   └── seed_test_data.py                # Seeds Pathway store with fixture articles
 └── tests/
     ├── unit/                            # Module-level isolation tests

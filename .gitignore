@@ -1,0 +1,100 @@
+# ── Python ────────────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyo
+*.pyd
+.Python
+
+# ── Virtual Environments ──────────────────────────────────────────────────────
+.venv/
+venv/
+env/
+ENV/
+.env.local
+
+# ── Poetry ────────────────────────────────────────────────────────────────────
+# Keep poetry.lock committed — it ensures reproducible installs across machines.
+# DO NOT add poetry.lock to .gitignore.
+dist/
+*.egg-info/
+.eggs/
+
+# ── Secrets & Environment ─────────────────────────────────────────────────────
+# .env.example IS committed (it's the safe template).
+# .env and .env.local are NOT committed (they contain real secrets).
+.env
+.env.local
+*.env
+
+# ── Pathway ───────────────────────────────────────────────────────────────────
+# Pathway persists its state and metadata locally during pw.run()
+.pathway/
+pathway_cache/
+pathway_tmp/
+*.persistent_storage
+
+# ── ML / Model Artifacts ─────────────────────────────────────────────────────
+models/
+*.pkl
+*.joblib
+*.pt
+*.pth
+*.onnx
+*.safetensors
+huggingface_cache/
+.cache/
+
+# ── Streamlit ────────────────────────────────────────────────────────────────
+.streamlit/secrets.toml
+
+# ── Playwright ───────────────────────────────────────────────────────────────
+playwright-report/
+test-results/
+
+# ── Testing & Coverage ────────────────────────────────────────────────────────
+.pytest_cache/
+htmlcov/
+.coverage
+.coverage.*
+coverage.xml
+*.cover
+nosetests.xml
+pytest.ini.bak
+
+# ── Type Checking ─────────────────────────────────────────────────────────────
+.mypy_cache/
+.dmypy.json
+dmypy.json
+.pytype/
+
+# ── Ruff ──────────────────────────────────────────────────────────────────────
+.ruff_cache/
+
+# ── IDEs & Editors ────────────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# ── Logs ─────────────────────────────────────────────────────────────────────
+*.log
+logs/
+
+# ── Jupyter (if used for experimentation) ────────────────────────────────────
+.ipynb_checkpoints/
+*.ipynb
+
+# ── Temporary / OS ───────────────────────────────────────────────────────────
+tmp/
+temp/
+*.tmp
+*.bak
+*.orig
+
+# ── Build ─────────────────────────────────────────────────────────────────────
+build/
+dist/

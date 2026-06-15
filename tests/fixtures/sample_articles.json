@@ -1,0 +1,18 @@
+﻿[
+  {
+    "article_id": "abc123",
+    "title": "Sample Article About Climate Change",
+    "text": "Scientists report a significant rise in global temperatures...",
+    "publisher": "reuters",
+    "publish_ts": "2025-06-01T10:00:00Z",
+    "url": "https://reuters.com/sample-article"
+  },
+  {
+    "article_id": "def456",
+    "title": "Climate Crisis: A Different Perspective",
+    "text": "Economic analysts warn that climate policy could stifle growth...",
+    "publisher": "foxnews",
+    "publish_ts": "2025-06-01T11:30:00Z",
+    "url": "https://foxnews.com/sample-article"
+  }
+]
