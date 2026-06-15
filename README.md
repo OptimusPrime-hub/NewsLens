@@ -100,7 +100,7 @@ Natural Language Query
 | **Bias score formula** | `BiasScore = w1*DeltaSentiment + w2*FramingDivergence + w3*EntitySalienceDelta`, normalized to [-1, +1] |
 | **5-frame framing analysis** | LLM classifies publisher narrative into CONFLICT / ECONOMIC / HUMAN_INTEREST / MORALITY / RESPONSIBILITY frames |
 | **Event confidence tiers** | Timeline events tagged HIGH (3+ sources), MEDIUM (2), LOW (1 corroborated), UNVERIFIED (1 uncorroborated) |
-| **Agent trace transparency** | Every LangGraph node step — intent, routing, retrieval tier, CRAG grades, generation — is surfaced live in the Streamlit sidebar |
+| **Agent trace transparency** | Every LangGraph node step — intent, routing, retrieval tier, CRAG grades, generation — is surfaced live in the web UI trace panel |
 | **Bounded LLM use** | LLMs appear only in M1 (intent parsing) and M5 (narrative explanation); sentiment, bias, and timeline scores are model-computed |
 | **Publisher normalization** | Canonical publisher name mapping across RSS, NewsAPI, and web sources eliminates duplicate publisher identities |
 | **Offline embedding fallback** | Seamlessly switches from OpenAI `text-embedding-3-small` to local `BAAI/bge-small-en-v1.5` when the API is unavailable |
@@ -139,7 +139,7 @@ All inter-module communication uses strictly typed Pydantic v2 models:
 | `AnalysisResult` | M2 → M5 | Top-level envelope: intent, conditional result payload, agent trace, metadata |
 | `AnalysisMetadata` | M2 → M5 | Latency, retrieval tier used, chunk counts, model versions |
 
-Every `AnalysisResult` carries a full `agent_trace: list[TraceEntry]` so the Streamlit UI can replay every reasoning step the pipeline took.
+Every `AnalysisResult` carries a full `agent_trace: list[TraceEntry]` so the web UI can replay every reasoning step the pipeline took.
 
 ---
 
@@ -326,14 +326,14 @@ poetry run python main.py "Inflation news" --quiet
 # Full suite
 poetry run pytest tests/ -v
 
-# Convenience runner
-poetry run python tests/runner.py                # Unit + integration (fast, default)
-poetry run python tests/runner.py --unit         # Unit tests only
-poetry run python tests/runner.py --integration  # Integration tests only
-poetry run python tests/runner.py --e2e          # E2E smoke tests (mocked Pathway + LLM)
-poetry run python tests/runner.py --live         # Live smoke tests (requires NewsAPI + Pathway)
-poetry run python tests/runner.py --all          # Everything including live E2E
-poetry run python tests/runner.py --coverage     # HTML coverage report -> htmlcov/
+# Unit tests only
+poetry run pytest tests/unit/ -v
+
+# Integration tests only
+poetry run pytest tests/integration/ -v
+
+# With coverage report
+poetry run pytest tests/ --cov=src --cov-report=html
 ```
 
 ### Test Suites
@@ -342,8 +342,6 @@ poetry run python tests/runner.py --coverage     # HTML coverage report -> htmlc
 |-------|-------|--------------|
 | `tests/unit/` | Module isolation — each engine tested independently with fixture data | No network, no LLM |
 | `tests/integration/` | Full pipeline flow from `IntentPayload` to `AnalysisResult` with mocked VectorStore | No network, no LLM |
-| `tests/e2e/test_e2e_smoke.py` | End-to-end pipeline against pre-seeded article fixtures | No network, no LLM |
-| `tests/e2e/test_live_smoke.py` | Full live pipeline with real NewsAPI + Pathway VectorStore | NewsAPI key + Pathway running |
 
 ### What the E2E Smoke Tests Verify
 
@@ -434,18 +432,15 @@ newslens/
 │           └── assets/
 │               ├── images/              # Logo, icons
 │               └── fonts/               # Self-hosted web fonts
-├── schemas/                             # 11 Pydantic v2 data contract models
+├── schemas/                             # 11 Pydantic v2 data contract models — REMOVED (schemas live inside each module)
 ├── scripts/
 │   ├── run_pathway_pipeline.py          # Starts M0 pw.run() background process
 │   ├── run_website.sh                   # Starts M5 FastAPI server via uvicorn
 │   └── seed_test_data.py                # Seeds Pathway store with fixture articles
 └── tests/
-    ├── unit/                            # Module-level isolation tests
-    ├── integration/                     # Full pipeline tests with mocked VectorStore
-    ├── e2e/
-    │   ├── test_e2e_smoke.py            # End-to-end smoke tests (offline fixtures)
-    │   └── test_live_smoke.py           # Live pipeline smoke tests
-    └── runner.py                        # Convenience runner with category flags
+    ├── unit/                            # Module-level isolation tests (5 files)
+    ├── integration/                     # Full pipeline tests with mocked VectorStore (3 files)
+    └── fixtures/                        # JSON fixture data for offline tests
 ```
 
 ---

@@ -938,6 +938,8 @@ flowchart TD
 ```
 news-agentic-rag/
 │
+├── main.py                             # Pipeline entry point — starts M0 pw.run() + launches M5 FastAPI server
+├── conftest.py                         # Shared pytest fixtures (mock VectorStore, sample IntentPayloads)
 ├── README.md
 ├── pyproject.toml
 ├── .env.example
