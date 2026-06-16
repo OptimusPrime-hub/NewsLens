@@ -18,20 +18,9 @@ poetry run python scripts/run_pathway_pipeline.py &
 poetry run bash scripts/run_website.sh
 # Then open http://localhost:8000 in your browser
 
-# Or run the CLI directly
-python main.py "How did Reuters and Fox News cover the US-China trade talks?"
-
-# Draw a timeline of an unfolding event
-python main.py "Timeline of the Silicon Valley Bank collapse" --intent timeline
-
-# Get a consensus summary across all sources
-python main.py "What is happening with the Gaza ceasefire negotiations?" --intent summary
-
-# Target specific publishers
-python main.py "Compare BBC and Al Jazeera on the Ukraine war" --publishers bbc,aljazeera
-
-# Restrict to a date range
-python main.py "Gaza ceasefire talks" --from 2025-01-01 --to 2025-06-01
+# Open your browser and go to:
+# http://localhost:8000
+# Type your query in the search box and press Analyse.
 
 # JSON output for scripting
 python main.py "US election coverage bias" --json
@@ -250,71 +239,56 @@ CRAG_TOP_K=15                           # Chunks retrieved per query
 
 ## Usage
 
-### CLI Commands
+### 1. Start the pipeline
 
 ```bash
-# Start the ingestion pipeline
-poetry run python scripts/run_pathway_pipeline.py &
+# Terminal 1 — start the Pathway ingestion pipeline (runs continuously)
+poetry run python scripts/run_pathway_pipeline.py
 
-# Start the web server (http://localhost:8000)
+# Terminal 2 — start the FastAPI web server
 poetry run bash scripts/run_website.sh
-
-# Or use the CLI directly for bias detection
-poetry run python main.py "How did Reuters and Fox News cover the US-China trade talks?"
-
-# Force timeline intent
-poetry run python main.py "Timeline of the Silicon Valley Bank collapse" --intent timeline
-
-# Force summary intent
-poetry run python main.py "Gaza ceasefire negotiations" --intent summary
-
-# Restrict publishers
-poetry run python main.py "Ukraine war coverage comparison" --publishers bbc,reuters,rt
-
-# Filter by date range
-poetry run python main.py "US election coverage" --from 2024-10-01 --to 2024-11-05
-
-# Adjust confidence threshold
-poetry run python main.py "Fed rate cuts" --confidence 0.85
-
-# Increase retrieved chunks
-poetry run python main.py "Climate change coverage" --top-k 30
-
-# Skip CRAG re-ranking (faster)
-poetry run python main.py "AI regulation debate" --no-crag
-
-# JSON output for scripting
-poetry run python main.py "OpenAI board crisis" --json
-
-# Verbose agent trace
-poetry run python main.py "Palestine coverage" --verbose
-
-# Suppress progress output
-poetry run python main.py "Inflation news" --quiet
 ```
 
-### Full CLI Reference
+### 2. Open the web UI
 
-| Flag | Short | Default | Description |
-|------|-------|---------|-------------|
-| `--intent` | `-i` | `auto` | Force intent class: `bias`, `timeline`, or `summary` |
-| `--publishers` | `-p` | all | Comma-separated canonical publisher names to restrict retrieval |
-| `--from` | | none | Start date for article filter (ISO 8601: `YYYY-MM-DD`) |
-| `--to` | | none | End date for article filter (ISO 8601: `YYYY-MM-DD`) |
-| `--top-k` | `-k` | `15` | Number of chunks to retrieve per Pathway query |
-| `--confidence` | `-c` | `0.80` | M1 intent confidence threshold (0.0–1.0) |
-| `--no-crag` | | `false` | Skip CRAG re-ranking (raw retrieval only, faster) |
-| `--empirical` | | `false` | Enable real-time web search fallback even when Pathway hits threshold |
-| `--json` | | `false` | Output raw JSON instead of Rich terminal display |
-| `--quiet` | `-q` | `false` | Suppress progress spinners and step logs |
-| `--verbose` | `-v` | `false` | Enable DEBUG-level logging and full agent trace in terminal |
-| `--m1-model` | | `gpt-4o-mini` | LLM model for M1 intent translation (overrides `M1_LLM_MODEL`) |
-| `--m5-model` | | `gpt-4o` | LLM model for M5 narrative generation (overrides `M5_LLM_MODEL`) |
-| `--embedding-model` | | `text-embedding-3-small` | Embedding model for query vector (overrides `EMBEDDING_MODEL`) |
-| `--ollama-host` | | `http://localhost:11434` | Ollama endpoint URL (overrides `OLLAMA_HOST`) |
-| `--pathway-host` | | `localhost` | Pathway VectorStore host |
-| `--pathway-port` | | `8765` | Pathway VectorStore port |
-| `--allow-low-confidence` | | `false` | Continue with intent parse even below confidence threshold |
+Navigate to **http://localhost:8000** in your browser.
+
+| Page | URL | Description |
+|------|-----|-------------|
+| Query input | `http://localhost:8000/` | Enter your natural-language news query |
+| Results | `http://localhost:8000/results` | Bias heatmap, timeline, summary and agent trace |
+| About | `http://localhost:8000/about` | Methodology and system explanation |
+
+### 3. Example queries
+
+| Query | Intent detected |
+|-------|----------------|
+| *"How did Reuters and Fox News cover the US-China trade talks?"* | `BIAS_DETECTION` |
+| *"Timeline of the Silicon Valley Bank collapse"* | `TIMELINE` |
+| *"What happened with Gaza ceasefire negotiations last week?"* | `CROSS_PUBLISHER_SUMMARY` |
+| *"Compare BBC and Al Jazeera on the Ukraine war"* | `BIAS_DETECTION` |
+
+### 4. REST API (programmatic access)
+
+```bash
+# POST /api/analyze
+curl -X POST http://localhost:8000/api/analyze \
+  -H "Content-Type: application/json" \
+  -d '{"query": "How did Reuters and Fox News cover the US-China trade talks?"}'
+
+# GET /api/health
+curl http://localhost:8000/api/health
+```
+
+**Request body:**
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `query` | `string` | ✅ | Natural-language news query |
+| `publishers` | `list[str]` | ❌ | Restrict to specific publishers (e.g. `["bbc", "reuters"]`) |
+| `date_from` | `string` | ❌ | ISO 8601 start date filter (`YYYY-MM-DD`) |
+| `date_to` | `string` | ❌ | ISO 8601 end date filter (`YYYY-MM-DD`) |
+| `top_k` | `int` | ❌ | Number of chunks to retrieve (default: `15`) |
 
 ---
 
