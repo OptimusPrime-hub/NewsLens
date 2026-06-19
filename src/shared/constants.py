@@ -1,0 +1,12 @@
+"""
+Centralized constants for all NewsLens modules.
+"""
+
+CHUNK_SIZE = 512
+CHUNK_OVERLAP = 64
+
+INTENT_CONFIDENCE_THRESHOLD = 0.80
+
+CRAG_RELEVANCE_THRESHOLD = 0.72
+
+DEFAULT_TOP_K = 15
