@@ -784,6 +784,45 @@ class AnalysisResult(BaseModel):
     warnings: list[str] = Field(default_factory=list)
 ```
 
+### 4.3 Module 0 (Ingestion) Schemas
+
+```python
+class RawArticle(BaseModel):
+    url: str
+    title: str
+    content: str
+    publish_ts: datetime
+    source_name: str
+
+class NormalizedArticle(BaseModel):
+    article_id: str
+    title: str
+    text: str
+    publisher: str
+    publish_ts: datetime
+    url: str
+
+class ArticleChunk(BaseModel):
+    chunk_id: str
+    article_id: str
+    chunk_text: str
+    publisher: str
+    publish_ts: datetime
+    url: str
+```
+
+### 4.4 Module 5 (UI) API Request Schema
+
+```python
+class AnalyzeRequest(BaseModel):
+    query: str
+    publishers: list[str] | None = None
+    date_from: str | None = None
+    date_to: str | None = None
+    top_k: int | None = None
+```
+
+
 ---
 
 ## 5. Resilience & Fallback Matrix
