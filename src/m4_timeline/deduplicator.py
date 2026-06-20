@@ -106,16 +106,75 @@ class EventDeduplicator:
         return timeline_events
 
     def _cluster_events_for_date(self, evts: list[ExtractedEvent]) -> list[list[ExtractedEvent]]:
-        return [[e] for e in evts]
+        """
+        Groups events into clusters based on headline similarity threshold >= 0.85.
+        """
+        if not evts:
+            return []
+        if len(evts) == 1:
+            return [[evts[0]]]
+
+        # Simple single-linkage agglomerative clustering
+        clusters: list[list[ExtractedEvent]] = [[e] for e in evts]
+
+        changed = True
+        while changed:
+            changed = False
+            best_pair = None
+            best_sim = -1.0
+
+            # Find best merge pair
+            for i in range(len(clusters)):
+                for j in range(i + 1, len(clusters)):
+                    # Compare representatives
+                    sim = self._similarity(clusters[i][0].headline, clusters[j][0].headline)
+                    if sim >= 0.85 and sim > best_sim:
+                        best_sim = sim
+                        best_pair = (i, j)
+
+            if best_pair:
+                i, j = best_pair
+                clusters[i].extend(clusters[j])
+                clusters.pop(j)
+                changed = True
+
+        return clusters
 
     def _similarity(self, t1: str, t2: str) -> float:
-        return 0.0
+        """
+        Compute similarity score. Uses embedding cosine similarity if available,
+        otherwise falls back to Jaccard overlap.
+        """
+        embedder = self._get_embedder()
+        if embedder:
+            try:
+                vecs = embedder.embed_texts([t1, t2])
+                v1, v2 = vecs[0], vecs[1]
+                n1, n2 = np.linalg.norm(v1), np.linalg.norm(v2)
+                if n1 > 0 and n2 > 0:
+                    return float(np.dot(v1, v2) / (n1 * n2))
+            except Exception as exc:  # noqa: BLE001
+                logger.debug(f"Deduplicator cosine similarity failed: {exc}")
+
+        return self._jaccard_similarity(t1, t2)
 
     def _jaccard_similarity(self, s1: str, s2: str) -> float:
-        return 0.0
+        w1 = set(re.findall(r"\w+", s1.lower()))
+        w2 = set(re.findall(r"\w+", s2.lower()))
+        stopwords = {
+            "the", "a", "an", "and", "or", "but", "in", "on", "at", "to", "for",
+            "with", "by", "of", "is", "was", "were", "are", "about", "that", "this",
+            "as", "from", "has", "been", "its", "his", "her", "their"
+        }
+        w1 = w1 - stopwords
+        w2 = w2 - stopwords
+        if not w1 or not w2:
+            return 0.0
+        return len(w1 & w2) / len(w1 | w2)
 
     def _select_canonical_representative(self, cluster: list[ExtractedEvent]) -> ExtractedEvent:
-        return cluster[0]
+        """Select the event with the longest headline/description as canonical representative."""
+        return max(cluster, key=lambda e: len(e.headline) + len(e.description))
 
     def _resolve_sources(
         self,
@@ -123,7 +182,43 @@ class EventDeduplicator:
         chunks: list[RetrievedChunk],
         canonical: ExtractedEvent,
     ) -> list[ArticleReference]:
-        return []
+        """Maps extracted event sources back to retrieved chunks or constructs placeholders."""
+        chunk_map = {c.chunk_id: c for c in chunks}
+        sources: list[ArticleReference] = []
+        seen_urls = set()
+
+        for evt in cluster:
+            for cid in evt.chunk_ids_used:
+                chunk = chunk_map.get(cid)
+                if chunk and chunk.publisher not in seen_urls: # clean duplication guard
+                    seen_urls.add(chunk.publisher)
+                    sources.append(
+                        ArticleReference(
+                            title=canonical.headline,
+                            publisher=chunk.publisher,
+                            url="",  # Fill in if chunk has url, otherwise empty
+                            publish_ts=chunk.publish_ts,
+                        )
+                    )
+
+        # Fallback if no matching chunks found
+        if not sources:
+            for pub in canonical.publishers:
+                sources.append(
+                    ArticleReference(
+                        title=canonical.headline,
+                        publisher=pub,
+                        url="",
+                        publish_ts=datetime.now(tz=UTC),
+                    )
+                )
+        return sources
 
     def _parse_date(self, date_text: str) -> date:
-        return date.today()
+        """Best-effort date parsing from free-text."""
+        from dateutil import parser as dateutil_parser  # noqa: PLC0415
+
+        try:
+            return dateutil_parser.parse(date_text, fuzzy=True).date()
+        except (ValueError, TypeError):
+            return date.today()
