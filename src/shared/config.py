@@ -32,6 +32,8 @@ class AppSettings(BaseSettings):
         description="Ollama server URL for local LLM fallback",
     )
     groq_api_key: str = Field(default="", description="Groq API key")
+    newsapi_key: str = Field(default="", description="NewsAPI API key")
+
 
 
     # ── Model Selection ──────────────────────────────────────────────────────
@@ -44,6 +46,15 @@ class AppSettings(BaseSettings):
     # ── Pathway VectorStore ──────────────────────────────────────────────────
     pathway_host: str = Field(default="127.0.0.1")
     pathway_port: int = Field(default=8765)
+    pathway_refresh_interval_ms: int = Field(
+        default=30000,
+        description="Pathway poll refresh interval in ms",
+    )
+    pathway_rss_refresh_interval_ms: int = Field(
+        default=60000,
+        description="Pathway RSS poll refresh interval in ms",
+    )
+
 
     # ── Bing Search ──────────────────────────────────────────────────────────
     bing_api_key: str = Field(default="", description="Bing Search API v7 key")
