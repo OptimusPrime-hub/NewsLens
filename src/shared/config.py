@@ -39,6 +39,7 @@ class AppSettings(BaseSettings):
     secondary_chat_model: str = Field(default="claude-3-5-haiku-20241022")
     local_chat_model: str = Field(default="llama3.2:3b")
     embedding_model: str = Field(default="text-embedding-3-small")
+    local_embedding_model: str = Field(default="BAAI/bge-small-en-v1.5")
 
     # ── Pathway VectorStore ──────────────────────────────────────────────────
     pathway_host: str = Field(default="127.0.0.1")
