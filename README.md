@@ -367,7 +367,15 @@ news-agentic-rag/
 │   │   ├── timeline_agent.py            # Timeline specialist agent node
 │   │   ├── bias_agent.py                # Bias specialist agent node
 │   │   ├── summary_agent.py             # Summary specialist agent node
+│   │   ├── assembler.py                 # Assembles agent results into final output
+│   │   ├── validators.py                # Strict schema validators
 │   │   ├── schemas.py                   # RetrievedChunk, SummaryResult, TraceEntry, AnalysisMetadata, AnalysisResult
+│   │   ├── prompts/
+│   │   │   ├── bias.py                  # Prompts for Bias agent node
+│   │   │   ├── crag.py                  # Prompts for CRAG evaluator node
+│   │   │   ├── rewrite.py               # Prompts for Query rewriter node
+│   │   │   ├── summary.py               # Prompts for Summary agent node
+│   │   │   └── timeline.py              # Prompts for Timeline agent node
 │   │   ├── retrieval/
 │   │   │   ├── manager.py               # RetrievalManager with 4-tier fallback cascade
 │   │   │   ├── pathway_client.py        # Pathway VectorStore client
@@ -419,7 +427,18 @@ news-agentic-rag/
 │       ├── config.py                    # pydantic-settings Config model
 │       ├── llm_factory.py               # LLM provider factory (OpenAI / Anthropic / Ollama)
 │       ├── logging.py                   # loguru structured logger setup
-│       └── exceptions.py                # Custom exception hierarchy
+│       ├── exceptions.py                # Custom exception hierarchy
+│       ├── constants.py                 # Central system parameters and thresholds
+│       ├── cache.py                     # In-memory resource caching layer
+│       ├── retry.py                     # Resilience backoff decorator
+│       ├── types.py                     # Reusable type aliases
+│       └── prompts/
+│           ├── intent.py                # Prompts for Query intent classification
+│           ├── framing.py               # Prompts for narrative framing
+│           ├── explanation.py           # Prompts for bias explanation
+│           ├── timeline.py              # Prompts for timeline preparation
+│           ├── summary.py               # Prompts for consensus summary
+│           └── crag.py                  # Prompts for corrective retrieval
 ├── scripts/
 │   ├── run_pathway_pipeline.py          # Starts M0 pw.run() background process
 │   ├── run_website.sh                   # Starts M5 FastAPI server via uvicorn

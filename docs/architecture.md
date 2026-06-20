@@ -302,11 +302,11 @@ User Query (str)
 #### 3.5 M1 Intent Classification Logic
 
 ```python
-from enum import Enum
+from enum import StrEnum
 from pydantic import BaseModel, Field
 from typing import Optional, Tuple
 
-class IntentType(str, Enum):
+class IntentType(StrEnum):
     TIMELINE             = "TIMELINE"
     BIAS_DETECTION       = "BIAS_DETECTION"
     CROSS_PUBLISHER_SUMMARY = "CROSS_PUBLISHER_SUMMARY"
@@ -320,22 +320,17 @@ class IntentPayload(BaseModel):
     confidence: float = Field(ge=0.0, le=1.0)
     topic_keywords: list[str] = Field(default_factory=list)
 
-class IntentTranslator:
+class IntentClassifier:
     """M1: Translates raw queries into structured IntentPayloads."""
 
-    CLASSIFICATION_PROMPT = """..."""  # see full prompt in implementation
+    def classify(self, query: str) -> IntentPayload:
+        # Calls LLM with structured output or fallback
+        ...
 
-    async def translate(self, query: str) -> IntentPayload:
-        response = await self.llm.ainvoke(self.CLASSIFICATION_PROMPT.format(query=query))
-        try:
-            return IntentPayload.model_validate_json(response.content)
-        except ValidationError:
-            # Graceful degradation: default to safest intent
-            return IntentPayload(
-                intent=IntentType.CROSS_PUBLISHER_SUMMARY,
-                raw_query=query,
-                confidence=0.0,
-            )
+    async def classify_async(self, query: str) -> IntentPayload:
+        # Async invocation
+        ...
+
 ```
 
 #### 3.6 M1 Intent Routing Decision Table
@@ -1006,16 +1001,24 @@ news-agentic-rag/
 │   │   ├── timeline_agent.py             # Timeline specialist agent node
 │   │   ├── bias_agent.py                 # Bias specialist agent node
 │   │   ├── summary_agent.py              # Summary specialist agent node
+│   │   ├── assembler.py                  # Assembles agent results into final output
+│   │   ├── validators.py                 # Strict schema validators
+│   │   ├── schemas.py                    # RetrievedChunk, SummaryResult, TraceEntry, AnalysisMetadata, AnalysisResult
+│   │   ├── prompts/
+│   │   │   ├── bias.py                  # Prompts for Bias agent node
+│   │   │   ├── crag.py                  # Prompts for CRAG evaluator node
+│   │   │   ├── rewrite.py               # Prompts for Query rewriter node
+│   │   │   ├── summary.py               # Prompts for Summary agent node
+│   │   │   └── timeline.py              # Prompts for Timeline agent node
 │   │   ├── retrieval/
 │   │   │   ├── manager.py                # RetrievalManager with fallback cascade
 │   │   │   ├── pathway_client.py         # Pathway VectorStore client
 │   │   │   ├── bing_client.py            # Bing Search API client
 │   │   │   └── scraper_client.py         # Playwright scraper client
-│   │   ├── crag/
-│   │   │   ├── evaluator.py              # CRAG grade evaluator
-│   │   │   ├── rewriter.py               # Query rewriter
-│   │   │   └── schemas.py                # CRAGGrade, GradeEnum
-│   │   └── schemas.py                    # RetrievedChunk, AnalysisResult
+│   │   └── crag/
+│   │       ├── evaluator.py              # CRAG grade evaluator
+│   │       ├── rewriter.py               # Query rewriter
+│   │       └── schemas.py                # CRAGGrade, GradeEnum
 │   │
 │   ├── m3_bias/
 │   │   ├── __init__.py
@@ -1062,7 +1065,18 @@ news-agentic-rag/
 │       ├── config.py                     # pydantic-settings Config model
 │       ├── llm_factory.py                # LLM provider factory (OpenAI/Anthropic/Ollama)
 │       ├── logging.py                    # loguru structured logger setup
-│       └── exceptions.py                 # Custom exception hierarchy
+│       ├── exceptions.py                 # Custom exception hierarchy
+│       ├── constants.py                  # Central system parameters and thresholds
+│       ├── cache.py                      # In-memory resource caching layer
+│       ├── retry.py                      # Resilience backoff decorator
+│       ├── types.py                      # Reusable type aliases
+│       └── prompts/
+│           ├── intent.py                 # Prompts for Query intent classification
+│           ├── framing.py                # Prompts for narrative framing
+│           ├── explanation.py            # Prompts for bias explanation
+│           ├── timeline.py               # Prompts for timeline preparation
+│           ├── summary.py                # Prompts for consensus summary
+│           └── crag.py                   # Prompts for corrective retrieval
 │
 ├── tests/
 │   ├── unit/
@@ -1075,6 +1089,12 @@ news-agentic-rag/
 │   │   ├── test_e2e_timeline_query.py
 │   │   ├── test_e2e_bias_query.py
 │   │   └── test_fallback_cascade.py
+│   ├── contract/                        # Cross-module data contract and schema verification tests
+│   │   ├── test_m0_contracts.py
+│   │   ├── test_m1_contracts.py
+│   │   ├── test_m2_contracts.py
+│   │   ├── test_m3_contracts.py
+│   │   └── test_m4_contracts.py
 │   └── fixtures/
 │       ├── sample_articles.json
 │       └── mock_newsapi_response.json
@@ -1088,6 +1108,7 @@ news-agentic-rag/
     ├── architecture.md                   # This document
     ├── api_reference.md
     └── deployment_guide.md
+
 ```
 
 ---
