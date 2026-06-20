@@ -31,6 +31,8 @@ class AppSettings(BaseSettings):
         default="http://localhost:11434",
         description="Ollama server URL for local LLM fallback",
     )
+    groq_api_key: str = Field(default="", description="Groq API key")
+
 
     # ── Model Selection ──────────────────────────────────────────────────────
     primary_chat_model: str = Field(default="gpt-4o-mini")
