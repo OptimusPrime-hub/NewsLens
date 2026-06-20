@@ -4,11 +4,11 @@ Shared type aliases for the NewsLens platform.
 
 from __future__ import annotations
 
-from typing import TypeAlias
 from uuid import UUID
 
-PublisherName: TypeAlias = str
-ArticleId: TypeAlias = str
-ChunkId: TypeAlias = str
-SessionId: TypeAlias = UUID
-BiasScore: TypeAlias = float
+type PublisherName = str
+type ArticleId = str
+type ChunkId = str
+type SessionId = UUID
+type BiasScore = float
+

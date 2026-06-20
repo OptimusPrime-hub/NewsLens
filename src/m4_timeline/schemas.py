@@ -1,9 +1,10 @@
 from datetime import date, datetime
-from enum import Enum
-from pydantic import BaseModel, Field
-from typing import Tuple
+from enum import StrEnum
 
-class EventConfidence(str, Enum):
+from pydantic import BaseModel
+
+
+class EventConfidence(StrEnum):
     HIGH = "HIGH"          # ≥ 3 sources confirm
     MEDIUM = "MEDIUM"      # 2 sources confirm
     LOW = "LOW"            # 1 source, corroborated
@@ -29,7 +30,7 @@ class TimelineEvent(BaseModel):
 class TimelineResult(BaseModel):
     topic: str
     events: list[TimelineEvent]  # sorted by date asc
-    temporal_gaps: list[Tuple[date, date]]
+    temporal_gaps: list[tuple[date, date]]
     coherence_score: float
     total_sources_used: int
-    date_range_covered: Tuple[date, date]
+    date_range_covered: tuple[date, date]
