@@ -4,14 +4,6 @@
 
 ---
 
-**Document Version:** 1.0  
-**Classification:** Technical Architecture  
-**Author:** Principal Software Architect  
-**Date:** June 2026  
-**Status:** Final Draft — Review Ready
-
----
-
 ## Table of Contents
 
 1. [Executive Summary](#1-executive-summary)
@@ -1145,5 +1137,5 @@ class TraceEntry(BaseModel):
 
 ---
 
-*Document End — Architecture Specification v1.0*  
-*Inter-IIT Tech Meet 13.0 | Pathway × News Analysis Platform*
+*Document End — Architecture Specification*  
+*News Analysis Platform*
