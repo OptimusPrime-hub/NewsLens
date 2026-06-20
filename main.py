@@ -1,10 +1,16 @@
-import os, json
+# ruff: noqa: E402
+import os
+
 from dotenv import load_dotenv
+
 load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), ".env"), override=True)
 
-from src.m1_intent.classifier import IntentClassifier
+from langchain_core.messages import HumanMessage, SystemMessage
+
 from src.m0_ingestion.pipeline import get_pipeline
-from groq import Groq
+from src.m1_intent.classifier import IntentClassifier
+from src.shared.llm_factory import get_chat_model_with_fallback
+
 
 def main():
     user_query = input("Ask a question about the news: ")
@@ -63,34 +69,28 @@ def main():
         ),
     }.get(payload.intent.value, "Summarize the news.")
 
-    client = Groq(api_key=os.getenv("GROQ_API_KEY"))
-    response = client.chat.completions.create(
-        model="llama-3.3-70b-versatile",
-        messages=[
-            {
-                "role": "system",
-                "content": (
-                    "You are a precise investigative news analyst. "
-                    "Use ONLY the provided sources. Cite publisher names when referencing facts. "
-                    "Never hallucinate facts not present in the sources."
-                )
-            },
-            {
-                "role": "user",
-                "content": (
-                    f"Task: {intent_instruction}\n\n"
-                    f"Sources:\n{context_text}\n\n"
-                    f"Question: {user_query}"
-                )
-            }
-        ],
-        temperature=0.1,  # low temp = more factual, less hallucination
-        max_tokens=1024,
-    )
+    try:
+        llm = get_chat_model_with_fallback(temperature=0.1)
+        response = llm.invoke([
+            SystemMessage(content=(
+                "You are a precise investigative news analyst. "
+                "Use ONLY the provided sources. Cite publisher names when referencing facts. "
+                "Never hallucinate facts not present in the sources."
+            )),
+            HumanMessage(content=(
+                f"Task: {intent_instruction}\n\n"
+                f"Sources:\n{context_text}\n\n"
+                f"Question: {user_query}"
+            ))
+        ])
+        content = response.content
+    except Exception as exc:
+        print(f"\n[ERROR] LLM generation failed: {exc}")
+        content = "Could not generate final response due to LLM failure."
 
     print("\n--- FINAL ANSWER ---")
     print(f"(Intent: {payload.intent.value} | Publishers: {publishers_used})")
-    print(response.choices[0].message.content)
+    print(content)
 
 if __name__ == "__main__":
     main()

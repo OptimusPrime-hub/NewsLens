@@ -57,6 +57,12 @@ class AppSettings(BaseSettings):
         le=1.0,
         description="Minimum mean relevance to accept retrieval results",
     )
+    m1_confidence_threshold: float = Field(
+        default=0.80,
+        ge=0.0,
+        le=1.0,
+        description="Minimum confidence to accept intent parse",
+    )
 
     # ── Agent Graph ──────────────────────────────────────────────────────────
     max_agent_iterations: int = Field(
@@ -77,3 +83,8 @@ class AppSettings(BaseSettings):
 def get_settings() -> AppSettings:
     """Singleton accessor — parses .env once and caches."""
     return AppSettings()
+
+
+# Alias for backward compatibility with M0 and M1 imports
+get_config = get_settings
+
