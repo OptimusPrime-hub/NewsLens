@@ -1,6 +1,6 @@
-import pytest
-from src.m1_intent.schemas import IntentType
 from src.m1_intent.classifier import _heuristic_intent
+from src.m1_intent.schemas import IntentType
+
 
 def test_heuristic_intent_bias():
     query = "Compare how Fox News and CNN covered the election"
