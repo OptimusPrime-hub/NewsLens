@@ -8,7 +8,7 @@ RetrievalManager — NOT part of the background pw.run() loop.
 from __future__ import annotations
 
 import asyncio
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from loguru import logger
 
@@ -56,7 +56,7 @@ async def scrape_url(url: str, source_name: str = "web") -> RawArticle | None:
             url=url,
             title=title or url,
             content=content[:8000],  # cap to avoid embedding overflows
-            publish_ts=datetime.now(timezone.utc),
+            publish_ts=datetime.now(UTC),
             source_name=source_name,
         )
 
@@ -92,4 +92,5 @@ async def scrape_urls(
     results = await asyncio.gather(*[_bounded(u, n) for u, n in urls])
     articles = [r for r in results if r is not None]
     logger.info(f"[Scraper] Scraped {len(articles)}/{len(urls)} URLs successfully")
-    return articless
+    return articles
+
