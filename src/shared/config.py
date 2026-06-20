@@ -77,3 +77,5 @@ class AppSettings(BaseSettings):
 def get_settings() -> AppSettings:
     """Singleton accessor — parses .env once and caches."""
     return AppSettings()
+# Alias so M0/M1 code can call get_config() without changes
+get_config = get_settings
