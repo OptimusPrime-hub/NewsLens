@@ -15,7 +15,6 @@ from langchain_core.messages import HumanMessage, SystemMessage
 from src.m2_agents.crag.schemas import CRAGGrade, GradeEnum
 from src.m2_agents.prompts.crag import CRAG_SYSTEM_PROMPT, build_crag_user_prompt
 from src.m2_agents.schemas import RetrievedChunk
-from src.shared.exceptions import CRAGError
 from src.shared.llm_factory import get_chat_model_with_fallback
 from src.shared.logging import get_logger
 

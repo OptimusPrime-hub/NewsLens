@@ -4,8 +4,8 @@ Contract tests for Module 4 timeline synthesis results.
 
 from __future__ import annotations
 
-from datetime import date, datetime, timezone
 import json
+from datetime import UTC, date, datetime
 
 from src.m4_timeline.schemas import (
     ArticleReference,
@@ -21,7 +21,7 @@ def test_m4_timeline_contracts():
         title="Tariffs announced",
         publisher="Reuters",
         url="http://example.com/tariffs",
-        publish_ts=datetime.now(tz=timezone.utc),
+        publish_ts=datetime.now(tz=UTC),
     )
 
     event = TimelineEvent(

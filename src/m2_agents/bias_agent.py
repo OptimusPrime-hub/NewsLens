@@ -11,7 +11,7 @@ NO bias computation logic lives here — M3 owns that.
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from langchain_core.messages import HumanMessage, SystemMessage
 
@@ -41,7 +41,7 @@ async def bias_agent_node(state: AgentState) -> dict:
     from the relevant chunks, then builds a BiasAnalysisResult.
     In production, this would call M3's BiasEngine directly.
     """
-    start = datetime.now(tz=timezone.utc)
+    start = datetime.now(tz=UTC)
     chunks = state.get("relevant_chunks", [])
     payload = state["intent_payload"]
 
@@ -68,7 +68,7 @@ async def bias_agent_node(state: AgentState) -> dict:
         logger.error("Bias agent failed", error=str(exc))
         return _empty_result(start, f"Bias analysis failed: {exc}")
 
-    elapsed = int((datetime.now(tz=timezone.utc) - start).total_seconds() * 1000)
+    elapsed = int((datetime.now(tz=UTC) - start).total_seconds() * 1000)
 
     trace = TraceEntry(
         step_index=state.get("iteration_count", 0) + 1,
@@ -77,7 +77,7 @@ async def bias_agent_node(state: AgentState) -> dict:
         input_summary=f"{len(chunks)} relevant chunks",
         output_summary=f"{len(bias_result.publisher_profiles)} publisher profiles",
         latency_ms=elapsed,
-        timestamp=datetime.now(tz=timezone.utc),
+        timestamp=datetime.now(tz=UTC),
     )
 
     return {
@@ -139,7 +139,7 @@ def _parse_bias_response(raw: str, query: str) -> BiasAnalysisResult:
 
     return BiasAnalysisResult(
         topic=data.get("topic", query),
-        analysis_timestamp=datetime.now(tz=timezone.utc),
+        analysis_timestamp=datetime.now(tz=UTC),
         publisher_profiles=profiles,
         pairwise_divergence_matrix={},
         summary_explanation=data.get("cross_publisher_observations", ""),
@@ -149,7 +149,7 @@ def _parse_bias_response(raw: str, query: str) -> BiasAnalysisResult:
 
 def _empty_result(start: datetime, reason: str) -> dict:
     """Return an empty bias result with a warning trace."""
-    elapsed = int((datetime.now(tz=timezone.utc) - start).total_seconds() * 1000)
+    elapsed = int((datetime.now(tz=UTC) - start).total_seconds() * 1000)
     return {
         "bias_result": None,
         "agent_trace": [
@@ -160,7 +160,7 @@ def _empty_result(start: datetime, reason: str) -> dict:
                 input_summary="No chunks available",
                 output_summary=reason,
                 latency_ms=elapsed,
-                timestamp=datetime.now(tz=timezone.utc),
+                timestamp=datetime.now(tz=UTC),
             ),
         ],
         "error_log": [reason],

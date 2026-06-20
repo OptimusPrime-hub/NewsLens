@@ -10,7 +10,7 @@ The supervisor does NOT do retrieval or analysis — it only routes.
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from src.m1_intent.schemas import IntentType
 from src.m2_agents.schemas import TraceEntry
@@ -43,7 +43,7 @@ async def supervisor_node(state: AgentState) -> dict:
         input_summary=f"Query: {payload.raw_query[:80]}",
         output_summary=f"Intent: {payload.intent.value} (conf={payload.confidence:.2f})",
         latency_ms=0,
-        timestamp=datetime.now(tz=timezone.utc),
+        timestamp=datetime.now(tz=UTC),
     )
 
     return {

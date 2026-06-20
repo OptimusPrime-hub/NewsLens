@@ -11,7 +11,7 @@ NO timeline logic lives here — M4 owns that.
 
 from __future__ import annotations
 
-from datetime import date, datetime, timezone
+from datetime import UTC, date, datetime
 
 from langchain_core.messages import HumanMessage, SystemMessage
 
@@ -40,7 +40,7 @@ async def timeline_agent_node(state: AgentState) -> dict:
     In MVP, uses LLM to extract events, then builds a TimelineResult.
     In production, this would call M4's TimelineSynthesizer directly.
     """
-    start = datetime.now(tz=timezone.utc)
+    start = datetime.now(tz=UTC)
     chunks = state.get("relevant_chunks", [])
     payload = state["intent_payload"]
 
@@ -66,7 +66,7 @@ async def timeline_agent_node(state: AgentState) -> dict:
         logger.error("Timeline agent failed", error=str(exc))
         return _empty_result(start, f"Timeline extraction failed: {exc}")
 
-    elapsed = int((datetime.now(tz=timezone.utc) - start).total_seconds() * 1000)
+    elapsed = int((datetime.now(tz=UTC) - start).total_seconds() * 1000)
 
     trace = TraceEntry(
         step_index=state.get("iteration_count", 0) + 1,
@@ -75,7 +75,7 @@ async def timeline_agent_node(state: AgentState) -> dict:
         input_summary=f"{len(chunks)} relevant chunks",
         output_summary=f"{len(timeline_result.events)} events extracted",
         latency_ms=elapsed,
-        timestamp=datetime.now(tz=timezone.utc),
+        timestamp=datetime.now(tz=UTC),
     )
 
     return {
@@ -127,7 +127,7 @@ def _parse_timeline_response(raw: str, query: str) -> TimelineResult:
                 title=evt.get("headline", ""),
                 publisher=pub,
                 url="",
-                publish_ts=datetime.now(tz=timezone.utc),
+                publish_ts=datetime.now(tz=UTC),
             )
             for pub in evt.get("publishers", ["unknown"])
         ]
@@ -185,7 +185,7 @@ def _parse_date(date_text: str) -> date:
 
 def _empty_result(start: datetime, reason: str) -> dict:
     """Return an empty timeline result with a warning trace."""
-    elapsed = int((datetime.now(tz=timezone.utc) - start).total_seconds() * 1000)
+    elapsed = int((datetime.now(tz=UTC) - start).total_seconds() * 1000)
     return {
         "timeline_result": None,
         "agent_trace": [
@@ -196,7 +196,7 @@ def _empty_result(start: datetime, reason: str) -> dict:
                 input_summary="No chunks available",
                 output_summary=reason,
                 latency_ms=elapsed,
-                timestamp=datetime.now(tz=timezone.utc),
+                timestamp=datetime.now(tz=UTC),
             ),
         ],
         "error_log": [reason],

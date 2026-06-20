@@ -7,7 +7,7 @@ raw JSON results into RetrievedChunk models.
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import httpx
 from tenacity import (
@@ -139,7 +139,7 @@ class PathwayRetriever(BaseRetriever):
                     publish_ts=datetime.fromisoformat(
                         item.get("metadata", {}).get(
                             "publish_ts",
-                            datetime.now(tz=timezone.utc).isoformat(),
+                            datetime.now(tz=UTC).isoformat(),
                         ),
                     ),
                     relevance_score=float(item.get("score", item.get("dist", 0.0))),

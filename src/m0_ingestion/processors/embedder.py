@@ -16,8 +16,8 @@ from typing import Literal
 import numpy as np
 from loguru import logger
 
-from src.shared.config import get_config
 from src.m0_ingestion.schemas import ArticleChunk
+from src.shared.config import get_config
 
 config = get_config()
 

@@ -5,8 +5,8 @@ across NewsLens modules (M2, M3, M5).
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
 import json
+from datetime import UTC, datetime
 
 from src.m3_bias.schemas import (
     BiasAnalysisResult,
@@ -20,7 +20,7 @@ def test_bias_analysis_result_contract():
     """Verify that BiasAnalysisResult satisfies the strict data contract structure."""
     sentiment = SentimentScores(positive=0.4, neutral=0.5, negative=0.1, compound=0.3)
     framing = FramingVector(conflict=0.3, economic=0.2, human_interest=0.1, morality=0.1, responsibility=0.3)
-    
+
     profile = PublisherBiasProfile(
         publisher="Reuters",
         sentiment=sentiment,
@@ -32,7 +32,7 @@ def test_bias_analysis_result_contract():
 
     result = BiasAnalysisResult(
         topic="US-China trade",
-        analysis_timestamp=datetime.now(tz=timezone.utc),
+        analysis_timestamp=datetime.now(tz=UTC),
         publisher_profiles=[profile],
         pairwise_divergence_matrix={"Reuters": {"Reuters": 0.0}},
         summary_explanation="Objective overview.",

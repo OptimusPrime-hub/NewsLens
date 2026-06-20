@@ -1,6 +1,6 @@
-import pytest
-from src.m0_ingestion.processors.normalizer import strip_html, normalize_publisher
 from src.m0_ingestion.processors.chunker import _approx_tokens
+from src.m0_ingestion.processors.normalizer import normalize_publisher, strip_html
+
 
 def test_strip_html():
     html_content = "<div><h1>Headline</h1><p>This is the <b>article</b> text.</p></div>"

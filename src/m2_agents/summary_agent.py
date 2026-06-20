@@ -8,7 +8,7 @@ dedicated M6 summary module. Produces SummaryResult from relevant chunks.
 from __future__ import annotations
 
 import json
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from langchain_core.messages import HumanMessage, SystemMessage
 
@@ -31,7 +31,7 @@ async def summary_agent_node(state: AgentState) -> dict:
     This is the only specialist that calls the LLM for final
     generation, since no M6 summary module exists.
     """
-    start = datetime.now(tz=timezone.utc)
+    start = datetime.now(tz=UTC)
     chunks = state.get("relevant_chunks", [])
     payload = state["intent_payload"]
 
@@ -55,7 +55,7 @@ async def summary_agent_node(state: AgentState) -> dict:
         logger.error("Summary agent failed", error=str(exc))
         return _empty_result(start, f"Summary generation failed: {exc}")
 
-    elapsed = int((datetime.now(tz=timezone.utc) - start).total_seconds() * 1000)
+    elapsed = int((datetime.now(tz=UTC) - start).total_seconds() * 1000)
 
     trace = TraceEntry(
         step_index=state.get("iteration_count", 0) + 1,
@@ -64,7 +64,7 @@ async def summary_agent_node(state: AgentState) -> dict:
         input_summary=f"{len(chunks)} relevant chunks",
         output_summary=f"Summary: {len(summary_result.summary_text)} chars",
         latency_ms=elapsed,
-        timestamp=datetime.now(tz=timezone.utc),
+        timestamp=datetime.now(tz=UTC),
     )
 
     return {
@@ -113,7 +113,7 @@ def _parse_summary_response(raw: str) -> SummaryResult:
 
 def _empty_result(start: datetime, reason: str) -> dict:
     """Return an empty summary result with a warning trace."""
-    elapsed = int((datetime.now(tz=timezone.utc) - start).total_seconds() * 1000)
+    elapsed = int((datetime.now(tz=UTC) - start).total_seconds() * 1000)
     return {
         "summary_result": None,
         "agent_trace": [
@@ -124,7 +124,7 @@ def _empty_result(start: datetime, reason: str) -> dict:
                 input_summary="No chunks available",
                 output_summary=reason,
                 latency_ms=elapsed,
-                timestamp=datetime.now(tz=timezone.utc),
+                timestamp=datetime.now(tz=UTC),
             ),
         ],
         "error_log": [reason],

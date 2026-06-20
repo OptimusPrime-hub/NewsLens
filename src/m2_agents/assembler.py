@@ -8,7 +8,7 @@ change if the AnalysisResult schema evolves.
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from uuid import uuid4
 
 from src.m2_agents.schemas import AnalysisMetadata, AnalysisResult, TraceEntry
@@ -24,7 +24,7 @@ async def assemble_result_node(state: AgentState) -> dict:
 
     This is the single point of truth for result construction.
     """
-    start = datetime.now(tz=timezone.utc)
+    start = datetime.now(tz=UTC)
     payload = state["intent_payload"]
     trace_entries = state.get("agent_trace", [])
     error_log = state.get("error_log", [])
@@ -51,7 +51,7 @@ async def assemble_result_node(state: AgentState) -> dict:
     )
 
     # ── Assembly trace entry ─────────────────────────────────────────────
-    elapsed = int((datetime.now(tz=timezone.utc) - start).total_seconds() * 1000)
+    elapsed = int((datetime.now(tz=UTC) - start).total_seconds() * 1000)
     assembly_trace = TraceEntry(
         step_index=len(trace_entries) + 1,
         node_name="assembler",
@@ -63,7 +63,7 @@ async def assemble_result_node(state: AgentState) -> dict:
         ),
         output_summary=f"confidence={confidence:.2f}, warnings={len(error_log)}",
         latency_ms=elapsed,
-        timestamp=datetime.now(tz=timezone.utc),
+        timestamp=datetime.now(tz=UTC),
     )
 
     # ── Build warnings list ──────────────────────────────────────────────

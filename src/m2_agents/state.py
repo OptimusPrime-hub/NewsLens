@@ -9,7 +9,7 @@ The assembler node is the only place that builds the final result.
 from __future__ import annotations
 
 import operator
-from typing import Annotated, Optional, TypedDict
+from typing import Annotated, TypedDict
 
 from src.m1_intent.schemas import IntentPayload
 from src.m2_agents.crag.schemas import CRAGGrade
@@ -43,9 +43,9 @@ class AgentState(TypedDict):
     relevant_chunks: list[RetrievedChunk]  # filtered by CRAG (RELEVANT only)
 
     # ── Specialist agent outputs (mutually exclusive per query) ──────────────
-    bias_result: Optional[BiasAnalysisResult]
-    timeline_result: Optional[TimelineResult]
-    summary_result: Optional[SummaryResult]
+    bias_result: BiasAnalysisResult | None
+    timeline_result: TimelineResult | None
+    summary_result: SummaryResult | None
 
     # ── Observability ────────────────────────────────────────────────────────
     agent_trace: Annotated[list[TraceEntry], operator.add]

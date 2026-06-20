@@ -4,8 +4,7 @@ Contract tests to ensure Module 0 ingestion schemas remain compatible across pac
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
-import json
+from datetime import UTC, datetime
 
 from src.m0_ingestion.schemas import ArticleChunk, NormalizedArticle, RawArticle
 
@@ -16,10 +15,10 @@ def test_m0_ingestion_contracts():
         url="http://example.com/news",
         title="Test Title",
         content="Raw body content.",
-        publish_ts=datetime.now(tz=timezone.utc),
+        publish_ts=datetime.now(tz=UTC),
         source_name="Example News",
     )
-    
+
     # Serialize raw
     raw_json = raw.model_dump_json()
     validated_raw = RawArticle.model_validate_json(raw_json)
@@ -31,7 +30,7 @@ def test_m0_ingestion_contracts():
         title="Normalized Title",
         text="Cleaned body text.",
         publisher="Example",
-        publish_ts=datetime.now(tz=timezone.utc),
+        publish_ts=datetime.now(tz=UTC),
         url="http://example.com/news",
     )
 
@@ -46,7 +45,7 @@ def test_m0_ingestion_contracts():
         article_id="hash123",
         chunk_text="A single segment of text.",
         publisher="Example",
-        publish_ts=datetime.now(tz=timezone.utc),
+        publish_ts=datetime.now(tz=UTC),
         url="http://example.com/news",
     )
 

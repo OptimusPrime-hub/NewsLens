@@ -7,7 +7,7 @@ indistinguishable from Pathway results downstream.
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import httpx
 from tenacity import (
@@ -126,4 +126,4 @@ def _parse_bing_date(date_str: str | None) -> datetime:
             return datetime.fromisoformat(date_str.replace("Z", "+00:00"))
         except (ValueError, TypeError):
             pass
-    return datetime.now(tz=timezone.utc)
+    return datetime.now(tz=UTC)

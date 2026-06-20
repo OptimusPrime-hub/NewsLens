@@ -1,3 +1,4 @@
+# ruff: noqa: E402
 """
 Unit tests for Module 3 (Bias & Sentiment Engine).
 Mocks out transformers, torch, and spacy to run fast and fully offline.
@@ -20,7 +21,8 @@ mock_spacy.load.side_effect = Exception("spaCy model download required")
 mock_spacy.blank.side_effect = Exception("spaCy model download required")
 sys.modules["spacy"] = mock_spacy
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
+
 import pytest
 
 from src.m2_agents.schemas import RetrievedChunk
@@ -34,14 +36,13 @@ from src.m3_bias.scoring import (
 )
 from src.m3_bias.sentiment import SentimentAnalyzer
 
-
 # ── Sentiment Tests ───────────────────────────────────────────────────────────
 
 
 def test_sentiment_vader_fallback():
     """Verify VADER sentiment fallback works and produces scores in bounds."""
     analyzer = SentimentAnalyzer(use_fallback_only=True)
-    
+
     # Test positive text
     scores = analyzer.analyze("This is a wonderful, fantastic, and positive news story!")
     assert scores.positive > 0.0
@@ -71,7 +72,7 @@ def test_sentiment_roberta_success():
 
     analyzer = SentimentAnalyzer(use_fallback_only=False)
     scores = analyzer.analyze("Excellent news!")
-    
+
     assert scores.positive == 0.95
     assert scores.compound == 0.95
 
@@ -167,7 +168,7 @@ def test_pairwise_divergence():
         "Fox": FramingVector(conflict=0.1, economic=0.5, human_interest=0.1, morality=0.1, responsibility=0.2),
     }
     matrix = compute_pairwise_divergence(vectors)
-    
+
     assert "Reuters" in matrix
     assert "Fox" in matrix
     assert matrix["Reuters"]["Fox"] == matrix["Fox"]["Reuters"]
@@ -185,14 +186,14 @@ async def test_bias_engine_flow():
             chunk_id="c1",
             chunk_text="Reuters news text highlighting political conflict.",
             publisher="Reuters",
-            publish_ts=datetime.now(tz=timezone.utc),
+            publish_ts=datetime.now(tz=UTC),
             relevance_score=0.85,
         ),
         RetrievedChunk(
             chunk_id="c2",
             chunk_text="Fox News text covering economic implications.",
             publisher="Fox News",
-            publish_ts=datetime.now(tz=timezone.utc),
+            publish_ts=datetime.now(tz=UTC),
             relevance_score=0.88,
         ),
     ]
@@ -210,18 +211,18 @@ async def test_bias_engine_flow():
 
     with patch("src.m3_bias.framing.get_chat_model_with_fallback", return_value=mock_llm), \
          patch("src.m3_bias.engine.get_chat_model_with_fallback", return_value=mock_llm):
-        
+
         engine = BiasEngine(use_fallback_sentiment=True)
         result = await engine.analyze("US Trade Policy", chunks)
 
         assert result.topic == "US Trade Policy"
         assert len(result.publisher_profiles) == 2
-        
+
         # Verify profiles exist for Reuters and Fox News
         pubs = [p.publisher for p in result.publisher_profiles]
         assert "Reuters" in pubs
         assert "Fox News" in pubs
-        
+
         # Verify divergence matrix was calculated
         assert "Reuters" in result.pairwise_divergence_matrix
         assert result.summary_explanation == "This is a detailed analysis of publisher bias."

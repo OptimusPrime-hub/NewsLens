@@ -12,7 +12,7 @@ Adds warnings if checks fail; never blocks the pipeline.
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from src.m1_intent.schemas import IntentType
 from src.m2_agents.schemas import TraceEntry
@@ -29,7 +29,7 @@ async def validate_node(state: AgentState) -> dict:
     This replaces the expensive LLM-based self-reflection node.
     All checks are deterministic and fast.
     """
-    start = datetime.now(tz=timezone.utc)
+    start = datetime.now(tz=UTC)
     warnings: list[str] = []
     intent = state["intent_payload"].intent
 
@@ -64,7 +64,7 @@ async def validate_node(state: AgentState) -> dict:
     else:
         logger.info("Validation passed — all checks OK")
 
-    elapsed = int((datetime.now(tz=timezone.utc) - start).total_seconds() * 1000)
+    elapsed = int((datetime.now(tz=UTC) - start).total_seconds() * 1000)
 
     trace = TraceEntry(
         step_index=len(trace_entries) + 1,
@@ -73,7 +73,7 @@ async def validate_node(state: AgentState) -> dict:
         input_summary=f"Intent: {intent.value}",
         output_summary=f"{len(warnings)} warnings" if warnings else "All checks passed",
         latency_ms=elapsed,
-        timestamp=datetime.now(tz=timezone.utc),
+        timestamp=datetime.now(tz=UTC),
     )
 
     return {

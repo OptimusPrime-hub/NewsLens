@@ -9,15 +9,15 @@ from __future__ import annotations
 
 import hashlib
 import time
-from datetime import datetime, timezone
+from collections.abc import Callable
+from datetime import UTC, datetime
 from email.utils import parsedate_to_datetime
-from typing import Callable
 
 import feedparser
 from loguru import logger
 
-from src.shared.config import get_config
 from src.m0_ingestion.schemas import RawArticle
+from src.shared.config import get_config
 
 config = get_config()
 
@@ -44,10 +44,10 @@ def _parse_date(entry: feedparser.FeedParserDict) -> datetime:
         raw = getattr(entry, attr, None)
         if raw:
             try:
-                return parsedate_to_datetime(raw).astimezone(timezone.utc).replace(tzinfo=None)
+                return parsedate_to_datetime(raw).astimezone(UTC).replace(tzinfo=None)
             except Exception:
                 pass
-    return datetime.now(timezone.utc).replace(tzinfo=None)
+    return datetime.now(UTC).replace(tzinfo=None)
 
 
 def _url_id(url: str) -> str:

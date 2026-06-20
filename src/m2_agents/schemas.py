@@ -1,10 +1,13 @@
 from datetime import datetime
+from typing import Literal
 from uuid import UUID
-from typing import Optional, Literal
+
 from pydantic import BaseModel, Field
+
 from src.m1_intent.schemas import IntentType
 from src.m3_bias.schemas import BiasAnalysisResult
 from src.m4_timeline.schemas import TimelineResult
+
 
 class SummaryResult(BaseModel):
     summary_text: str
@@ -26,7 +29,7 @@ class TraceEntry(BaseModel):
     output_summary: str
     latency_ms: int
     fallback_triggered: bool = False
-    fallback_tier: Optional[int] = None
+    fallback_tier: int | None = None
     timestamp: datetime
 
 class AnalysisMetadata(BaseModel):
@@ -42,12 +45,12 @@ class AnalysisResult(BaseModel):
     """Top-level contract between M2 and M5."""
     intent: IntentType
     raw_query: str
-    
+
     # Conditional fields based on intent
-    bias_result: Optional[BiasAnalysisResult] = None
-    timeline_result: Optional[TimelineResult] = None
-    summary_result: Optional[SummaryResult] = None
-    
+    bias_result: BiasAnalysisResult | None = None
+    timeline_result: TimelineResult | None = None
+    summary_result: SummaryResult | None = None
+
     # Always present
     agent_trace: list[TraceEntry]
     metadata: AnalysisMetadata

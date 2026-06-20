@@ -4,8 +4,7 @@ Main orchestrator engine for Module 3 (Bias & Sentiment Analysis).
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
-import json
+from datetime import UTC, datetime
 from typing import TYPE_CHECKING
 
 from langchain_core.messages import HumanMessage, SystemMessage
@@ -15,7 +14,6 @@ from src.m3_bias.schemas import (
     BiasAnalysisResult,
     FramingVector,
     PublisherBiasProfile,
-    SentimentScores,
 )
 from src.m3_bias.scoring import (
     compute_bias_score,
@@ -50,7 +48,7 @@ class BiasEngine:
         """
         Perform complete bias and sentiment analysis on the retrieved chunks.
         """
-        start_time = datetime.now(tz=timezone.utc)
+        start_time = datetime.now(tz=UTC)
         logger.info("Starting bias engine analysis", topic=topic, n_chunks=len(chunks))
 
         if not chunks:
@@ -75,7 +73,7 @@ class BiasEngine:
 
         for pub, pub_chunks in publisher_groups.items():
             logger.info("Analyzing publisher corpus", publisher=pub, n_chunks=len(pub_chunks))
-            
+
             # Combine text and extract some supporting quotes (emotional or charged phrases)
             joint_text = "\n\n".join(c.chunk_text for c in pub_chunks)
             quotes = self._extract_emotional_quotes(pub_chunks)
@@ -104,7 +102,7 @@ class BiasEngine:
         if not profiles:
             return BiasAnalysisResult(
                 topic=topic,
-                analysis_timestamp=datetime.now(tz=timezone.utc),
+                analysis_timestamp=datetime.now(tz=UTC),
                 publisher_profiles=[],
                 pairwise_divergence_matrix={},
                 summary_explanation="No publisher profiles could be extracted.",
@@ -137,7 +135,7 @@ class BiasEngine:
         # 6. Generate narrative explanation
         summary_explanation = await self._generate_explanation(topic, profiles)
 
-        latency_ms = int((datetime.now(tz=timezone.utc) - start_time).total_seconds() * 1000)
+        latency_ms = int((datetime.now(tz=UTC) - start_time).total_seconds() * 1000)
         logger.info("Completed bias engine analysis", topic=topic, latency_ms=latency_ms)
 
         # Confidence is calculated as a blend of model confidence, publisher diversity, etc.
@@ -145,7 +143,7 @@ class BiasEngine:
 
         return BiasAnalysisResult(
             topic=topic,
-            analysis_timestamp=datetime.now(tz=timezone.utc),
+            analysis_timestamp=datetime.now(tz=UTC),
             publisher_profiles=profiles,
             pairwise_divergence_matrix=divergence_matrix,
             summary_explanation=summary_explanation,

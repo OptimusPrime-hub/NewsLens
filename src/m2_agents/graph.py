@@ -31,7 +31,7 @@ Benefits over the original design:
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 from langgraph.graph import END, StateGraph
@@ -64,7 +64,7 @@ async def retrieve_node(state: AgentState) -> dict:
 
     This node runs ONCE for all intents — agents don't retrieve individually.
     """
-    start = datetime.now(tz=timezone.utc)
+    start = datetime.now(tz=UTC)
     payload = state["intent_payload"]
     filters = build_filters(payload)
 
@@ -75,7 +75,7 @@ async def retrieve_node(state: AgentState) -> dict:
         chunks, tier = await manager.retrieve(payload.raw_query, filters)
     except Exception as exc:  # noqa: BLE001
         logger.error("Retrieval cascade failed", error=str(exc))
-        elapsed = int((datetime.now(tz=timezone.utc) - start).total_seconds() * 1000)
+        elapsed = int((datetime.now(tz=UTC) - start).total_seconds() * 1000)
         return {
             "retrieved_chunks": [],
             "retrieval_tier": "none",
@@ -88,7 +88,7 @@ async def retrieve_node(state: AgentState) -> dict:
                     output_summary=f"FAILED: {exc}",
                     latency_ms=elapsed,
                     fallback_triggered=True,
-                    timestamp=datetime.now(tz=timezone.utc),
+                    timestamp=datetime.now(tz=UTC),
                 ),
             ],
             "error_log": [f"Retrieval failed: {exc}"],
@@ -96,7 +96,7 @@ async def retrieve_node(state: AgentState) -> dict:
     finally:
         await manager.close()
 
-    elapsed = int((datetime.now(tz=timezone.utc) - start).total_seconds() * 1000)
+    elapsed = int((datetime.now(tz=UTC) - start).total_seconds() * 1000)
 
     trace = TraceEntry(
         step_index=1,
@@ -107,7 +107,7 @@ async def retrieve_node(state: AgentState) -> dict:
         latency_ms=elapsed,
         fallback_triggered=(tier != "pathway"),
         fallback_tier={"pathway": 0, "bing": 2, "scraper": 3}.get(tier),
-        timestamp=datetime.now(tz=timezone.utc),
+        timestamp=datetime.now(tz=UTC),
     )
 
     return {
@@ -123,7 +123,7 @@ async def crag_evaluate_node(state: AgentState) -> dict:
 
     This node runs ONCE — agents receive pre-filtered relevant chunks.
     """
-    start = datetime.now(tz=timezone.utc)
+    start = datetime.now(tz=UTC)
     chunks = state.get("retrieved_chunks", [])
 
     if not chunks:
@@ -138,7 +138,7 @@ async def crag_evaluate_node(state: AgentState) -> dict:
                     input_summary="0 chunks",
                     output_summary="Skipped — no chunks to evaluate",
                     latency_ms=0,
-                    timestamp=datetime.now(tz=timezone.utc),
+                    timestamp=datetime.now(tz=UTC),
                 ),
             ],
         }
@@ -165,7 +165,7 @@ async def crag_evaluate_node(state: AgentState) -> dict:
         if relevant:
             logger.info("No RELEVANT chunks, falling back to AMBIGUOUS")
 
-    elapsed = int((datetime.now(tz=timezone.utc) - start).total_seconds() * 1000)
+    elapsed = int((datetime.now(tz=UTC) - start).total_seconds() * 1000)
 
     trace = TraceEntry(
         step_index=2,
@@ -177,7 +177,7 @@ async def crag_evaluate_node(state: AgentState) -> dict:
             f"{sum(1 for g in grades if g.grade == GradeEnum.IRRELEVANT)} irrelevant"
         ),
         latency_ms=elapsed,
-        timestamp=datetime.now(tz=timezone.utc),
+        timestamp=datetime.now(tz=UTC),
     )
 
     return {
@@ -279,7 +279,6 @@ async def run_analysis(intent_payload: IntentPayload) -> AnalysisResult:
 
     if result is None:
         # Fallback: this shouldn't happen, but build a minimal result
-        from uuid import uuid4
 
         result = AnalysisResult(
             intent=intent_payload.intent,

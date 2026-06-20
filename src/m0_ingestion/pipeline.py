@@ -14,18 +14,17 @@ from __future__ import annotations
 
 import threading
 import time
-from datetime import datetime, timezone
 
 from loguru import logger
 
-from src.shared.config import get_config
 from src.m0_ingestion.connectors.newsapi_connector import NewsAPIConnector
 from src.m0_ingestion.connectors.rss_connector import RSSConnector
-from src.m0_ingestion.processors.normalizer import ArticleNormalizer
+from src.m0_ingestion.document_store import document_store
 from src.m0_ingestion.processors.chunker import SemanticChunker
 from src.m0_ingestion.processors.embedder import Embedder
-from src.m0_ingestion.document_store import document_store
-from src.m0_ingestion.schemas import RawArticle, NormalizedArticle, ArticleChunk
+from src.m0_ingestion.processors.normalizer import ArticleNormalizer
+from src.m0_ingestion.schemas import ArticleChunk, NormalizedArticle, RawArticle
+from src.shared.config import get_config
 
 config = get_config()
 

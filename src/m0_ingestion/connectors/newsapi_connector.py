@@ -7,14 +7,14 @@ Pathway pipeline. Runs as a pw.io.python.read() input source.
 from __future__ import annotations
 
 import time
-from datetime import datetime, timezone
-from typing import Callable
+from collections.abc import Callable
+from datetime import UTC, datetime
 
 import httpx
 from loguru import logger
 
-from src.shared.config import get_config
 from src.m0_ingestion.schemas import RawArticle
+from src.shared.config import get_config
 
 config = get_config()
 
@@ -75,7 +75,7 @@ class NewsAPIConnector:
                     item.get("publishedAt", "").replace("Z", "+00:00")
                 )
             except (ValueError, AttributeError):
-                publish_ts = datetime.now(timezone.utc)
+                publish_ts = datetime.now(UTC)
 
             articles.append(
                 RawArticle(

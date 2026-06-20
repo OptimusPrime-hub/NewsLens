@@ -4,8 +4,8 @@ Contract tests for Module 2 orchestration schemas (AnalysisResult).
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
 import json
+from datetime import UTC, datetime
 from uuid import uuid4
 
 from src.m1_intent.schemas import IntentType
@@ -27,12 +27,12 @@ def test_m2_orchestration_contracts():
         input_summary="US Trade",
         output_summary="Routed to summary",
         latency_ms=150,
-        timestamp=datetime.now(tz=timezone.utc),
+        timestamp=datetime.now(tz=UTC),
     )
 
     metadata = AnalysisMetadata(
         session_id=uuid4(),
-        query_timestamp=datetime.now(tz=timezone.utc),
+        query_timestamp=datetime.now(tz=UTC),
         total_latency_ms=300,
         retrieval_tier_used="pathway",
         total_chunks_retrieved=10,

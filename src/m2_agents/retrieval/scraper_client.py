@@ -7,7 +7,7 @@ This is the last-resort retrieval path — no external API dependency.
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import httpx
 
@@ -179,7 +179,7 @@ class ScraperRetriever(BaseRetriever):
                     chunk_id=f"scraper_{publisher}_{i}",
                     chunk_text=chunk_text,
                     publisher=publisher,
-                    publish_ts=datetime.now(tz=timezone.utc),
+                    publish_ts=datetime.now(tz=UTC),
                     relevance_score=round(0.5 - (i * 0.02), 2),  # lower baseline
                 ),
             )

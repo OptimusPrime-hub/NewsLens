@@ -10,8 +10,6 @@ Falls back gracefully when the local model is unavailable.
 
 from __future__ import annotations
 
-import hashlib
-from datetime import datetime, timezone
 from typing import Any
 
 import numpy as np
@@ -148,8 +146,8 @@ def build_vector_store_server():
     """
     try:
         import pathway as pw  # noqa: F401
-        from pathway.xpacks.llm.vector_store import VectorStoreServer
         from pathway.xpacks.llm.embedders import OpenAIEmbedder, SentenceTransformerEmbedder
+        from pathway.xpacks.llm.vector_store import VectorStoreServer
     except ImportError as exc:
         raise RuntimeError(
             "Pathway is not installed. Run `pip install pathway`."

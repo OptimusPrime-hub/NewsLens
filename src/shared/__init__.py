@@ -10,8 +10,8 @@ from src.shared.exceptions import (
     LLMParsingError,
     LLMProviderUnavailableError,
     NewsLensError,
-    RetrievalError,
     ResultValidationError,
+    RetrievalError,
 )
 from src.shared.llm_factory import get_chat_model, get_chat_model_with_fallback
 from src.shared.logging import get_logger, setup_logger

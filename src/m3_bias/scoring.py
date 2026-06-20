@@ -119,7 +119,7 @@ def jensen_shannon_divergence(p: list[float], q: list[float]) -> float:
 
     # JS Divergence is average of KL divergences to M
     jsd = 0.5 * kl_divergence(p_dist, m) + 0.5 * kl_divergence(q_dist, m)
-    
+
     # Clip just in case of small floating-point errors
     return max(0.0, min(1.0, jsd))
 
