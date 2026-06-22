@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>About — NewsLens</title>
+  <meta name="description" content="About the NewsLens multi-agent news analysis platform and its M0–M5 architecture." />
+  <link rel="stylesheet" href="/static/css/main.css" />
+  <link rel="stylesheet" href="/static/css/components.css" />
+  <link rel="stylesheet" href="/static/css/animations.css" />
+</head>
+<body>
+<nav class="nav">
+  <div class="nav-inner">
+    <a href="/" class="nav-logo gradient-text" style="text-decoration:none;">NewsLens</a>
+    <div class="nav-links">
+      <a href="/">Home</a>
+      <a href="/about" style="color:var(--text-primary);">About</a>
+      <a href="/api/docs">API</a>
+    </div>
+  </div>
+</nav>
+
+<div class="container" style="padding-top:4rem;padding-bottom:6rem;max-width:860px;">
+  <div class="anim-up">
+    <h1 style="margin-bottom:0.5rem;"><span class="gradient-text">How NewsLens Works</span></h1>
+    <p style="font-size:1.05rem;margin-bottom:3rem;">
+      A 6-module autonomous pipeline that ingests live news, routes queries through specialist agents,
+      and surfaces multi-perspective analysis with full reasoning transparency.
+    </p>
+  </div>
+
+  <div class="stagger" style="display:flex;flex-direction:column;gap:1.25rem;">
+
+    <div class="glass" style="padding:1.75rem;">
+      <div style="display:flex;align-items:center;gap:1rem;margin-bottom:0.75rem;">
+        <span style="font-size:1.5rem;">📡</span>
+        <div>
+          <h3>M0 — Live Ingestion Pipeline</h3>
+          <span class="badge badge-live" style="margin-top:4px;">Pathway Streaming</span>
+        </div>
+      </div>
+      <p style="font-size:0.875rem;">Continuously ingests from NewsAPI and RSS feeds using Pathway's incremental computation engine. Articles are chunked (512 tokens / 64 overlap), embedded, and indexed into a live vector store that auto-refreshes without manual intervention.</p>
+    </div>
+
+    <div class="glass" style="padding:1.75rem;">
+      <div style="display:flex;align-items:center;gap:1rem;margin-bottom:0.75rem;">
+        <span style="font-size:1.5rem;">🧠</span>
+        <h3>M1 — Intent Classifier</h3>
+      </div>
+      <p style="font-size:0.875rem;">Classifies raw queries into one of three intents: <strong>TIMELINE</strong>, <strong>BIAS_DETECTION</strong>, or <strong>CROSS_PUBLISHER_SUMMARY</strong>. Extracts entities, publishers, and date ranges. Falls back to regex classification when no LLM key is available.</p>
+    </div>
+
+    <div class="glass" style="padding:1.75rem;">
+      <div style="display:flex;align-items:center;gap:1rem;margin-bottom:0.75rem;">
+        <span style="font-size:1.5rem;">🤖</span>
+        <h3>M2 — Multi-Agent Router (LangGraph)</h3>
+      </div>
+      <p style="font-size:0.875rem;">A stateful LangGraph graph: Supervisor → Retrieve → CRAG Evaluate → Specialist Agent → Validate → Assemble. CRAG filters retrieved chunks by relevance, escalating through Pathway → Bing → Scraper fallback tiers automatically.</p>
+    </div>
+
+    <div class="glass" style="padding:1.75rem;">
+      <div style="display:flex;align-items:center;gap:1rem;margin-bottom:0.75rem;">
+        <span style="font-size:1.5rem;">⚖️</span>
+        <h3>M3 — Bias &amp; Sentiment Engine</h3>
+      </div>
+      <p style="font-size:0.875rem;">Computes per-publisher sentiment (VADER / RoBERTa), 5-dimensional framing vectors (Conflict / Economic / Human Interest / Morality / Responsibility), entity salience deltas, and a normalised bias score in [-1, +1].</p>
+    </div>
+
+    <div class="glass" style="padding:1.75rem;">
+      <div style="display:flex;align-items:center;gap:1rem;margin-bottom:0.75rem;">
+        <span style="font-size:1.5rem;">🕐</span>
+        <h3>M4 — Timeline Synthesizer</h3>
+      </div>
+      <p style="font-size:0.875rem;">Extracts temporally anchored events via spaCy NER + LLM secondary pass. Deduplicates using Jaccard similarity, detects coverage gaps, computes narrative coherence scores, and assigns HIGH/MEDIUM/LOW/UNVERIFIED confidence based on source count.</p>
+    </div>
+
+    <div class="glass" style="padding:1.75rem;">
+      <div style="display:flex;align-items:center;gap:1rem;margin-bottom:0.75rem;">
+        <span style="font-size:1.5rem;">🖥️</span>
+        <h3>M5 — Explanation &amp; UI Engine</h3>
+      </div>
+      <p style="font-size:0.875rem;">This interface. A FastAPI + Jinja2 + Vanilla JS frontend with SSE live progress streaming, full agent trace panel, retrieval-tier badges, metadata card, Timeline-first 4-tab results, and Chart.js sentiment + framing visualisations.</p>
+    </div>
+
+  </div>
+
+  <div style="margin-top:3rem;text-align:center;">
+    <a href="/" class="btn btn-primary" style="display:inline-flex;">← Try it now</a>
+  </div>
+</div>
+</body>
+</html>

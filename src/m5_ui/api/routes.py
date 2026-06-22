@@ -52,6 +52,16 @@ async def index(request: Request) -> HTMLResponse:
     return templates.TemplateResponse("index.html", {"request": request})
 
 
+@router.get("/results", response_class=HTMLResponse)
+async def results(request: Request) -> HTMLResponse:
+    return templates.TemplateResponse("results.html", {"request": request})
+
+
+@router.get("/about", response_class=HTMLResponse)
+async def about(request: Request) -> HTMLResponse:
+    return templates.TemplateResponse("about.html", {"request": request})
+
+
 @router.get("/api/health")
 async def health() -> JSONResponse:
     return JSONResponse({"status": "ok", "timestamp": datetime.now(tz=UTC).isoformat()})
