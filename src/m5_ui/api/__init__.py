@@ -1,7 +1,4 @@
-"""
-API schemas and routes package for Module 5 UI.
-"""
+"""M5 — UI package."""
+from src.m5_ui.api.server import create_app
 
-from src.m5_ui.api.schemas import AnalyzeRequest
-
-__all__ = ["AnalyzeRequest"]
+__all__ = ["create_app"]
