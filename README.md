@@ -11,19 +11,19 @@ NewsLens is a fully autonomous, multi-agent intelligence system built on **Pathw
 ## Quick Start
 
 ```bash
-# Start the Pathway ingestion pipeline (background)
-poetry run python scripts/run_pathway_pipeline.py &
+# 1. Start the Pathway ingestion pipeline (background)
+poetry run python scripts/run_pathway_pipeline.py
 
-# Start the web server
-poetry run bash scripts/run_website.sh
-# Then open http://localhost:8000 in your browser
+# 2. Start the NewsLens web server (new terminal)
+poetry run uvicorn src.m5_ui.api.server:app --reload --port 8000
 
-# Open your browser and go to:
-# http://localhost:8000
-# Type your query in the search box and press Analyse.
+# 3. Open http://localhost:8000 in your browser
+#    Type your query and press Analyze.
 
 # JSON output for scripting
-python main.py "US election coverage bias" --json
+curl -X POST http://localhost:8000/api/analyze \
+  -H "Content-Type: application/json" \
+  -d '{"query": "Timeline of US-China trade talks"}'
 ```
 
 ---
@@ -166,7 +166,7 @@ Every `AnalysisResult` carries a full `agent_trace: list[TraceEntry]` so the web
 
 ### Prerequisites
 
-- Python 3.12+
+- Python 3.12+ (tested on 3.14)
 - [Poetry](https://python-poetry.org/docs/#installation)
 - [Ollama](https://ollama.com) (optional — for local LLM fallback only)
 - NewsAPI.ai API key ([free tier](https://newsapi.ai))
@@ -245,7 +245,7 @@ CRAG_TOP_K=15                           # Chunks retrieved per query
 poetry run python scripts/run_pathway_pipeline.py
 
 # Terminal 2 — start the FastAPI web server
-poetry run bash scripts/run_website.sh
+poetry run uvicorn src.m5_ui.api.server:app --reload --port 8000
 ```
 
 ### 2. Open the web UI
@@ -269,13 +269,25 @@ Navigate to **http://localhost:8000** in your browser.
 
 ### 4. REST API (programmatic access)
 
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/analyze` | `POST` | Run full pipeline, return `AnalysisResult` JSON |
+| `/api/analyze/stream` | `POST` | SSE stream — emits live progress events then final result |
+| `/api/health` | `GET` | Liveness probe |
+| `/api/docs` | `GET` | OpenAPI interactive docs |
+
 ```bash
-# POST /api/analyze
+# Synchronous — waits for full result
 curl -X POST http://localhost:8000/api/analyze \
   -H "Content-Type: application/json" \
   -d '{"query": "How did Reuters and Fox News cover the US-China trade talks?"}'
 
-# GET /api/health
+# Streaming — emits SSE progress then result (used by the web UI)
+curl -X POST http://localhost:8000/api/analyze/stream \
+  -H "Content-Type: application/json" \
+  -d '{"query": "Timeline of Gaza ceasefire negotiations"}'
+
+# Liveness
 curl http://localhost:8000/api/health
 ```
 
@@ -402,23 +414,25 @@ news-agentic-rag/
 │   │   ├── __init__.py
 │   │   ├── api/
 │   │   │   ├── __init__.py
-│   │   │   ├── server.py                # FastAPI app — serves templates + REST /api/analyze
-│   │   │   └── routes.py                # POST /api/analyze, GET /api/health route handlers
+│   │   │   ├── server.py                # FastAPI app factory — mounts static, registers routes
+│   │   │   ├── routes.py                # GET /, /results, /about; POST /api/analyze, /api/analyze/stream
+│   │   │   ├── deps.py                  # Shared jinja2.Environment (bypasses Starlette Jinja2 cache bug)
+│   │   │   └── schemas.py               # AnalyzeRequest (M5 → M1/M2 API contract)
 │   │   ├── templates/
-│   │   │   ├── index.html               # Query input page
-│   │   │   ├── results.html             # Analysis results page
-│   │   │   └── about.html               # About / methodology page
+│   │   │   ├── index.html               # Search landing page — animated hero, SSE progress overlay
+│   │   │   ├── results.html             # Results page — trace panel, metadata card, 4-tab layout
+│   │   │   └── about.html               # M0–M5 architecture walkthrough page
 │   │   └── static/
 │   │       ├── css/
-│   │       │   ├── main.css             # Global styles, layout, typography
-│   │       │   ├── components.css       # Cards, badges, tabs, panels
-│   │       │   └── animations.css       # Loading skeletons, transitions
+│   │       │   ├── main.css             # Design system — dark glass palette, typography, buttons
+│   │       │   ├── components.css       # Tabs, badges, metadata card, trace steps, timeline track
+│   │       │   └── animations.css       # Shimmer skeletons, slide-up entrances, live dot pulse
 │   │       ├── js/
-│   │       │   ├── main.js              # Bootstrap, tab switching, global state
-│   │       │   ├── query.js             # Form submit → POST /api/analyze → render
-│   │       │   ├── bias_chart.js        # Chart.js heatmap + framing radar
-│   │       │   ├── timeline.js          # Custom horizontal scroll timeline
-│   │       │   └── trace_panel.js       # Collapsible agent trace step log
+│   │       │   ├── main.js              # renderResult() — consumes AnalysisResult, tier badge, summary
+│   │       │   ├── query.js             # SSE query handler — live progress steps → navigate to /results
+│   │       │   ├── bias_chart.js        # Chart.js stacked sentiment bars + 5-axis framing radar
+│   │       │   ├── timeline.js          # Horizontal scroll timeline — confidence dots, gap indicators
+│   │       │   └── trace_panel.js       # Execution-focused trace steps from agent_trace[]
 │   │       └── assets/
 │   │           ├── images/              # Logo, icons
 │   │           └── fonts/               # Self-hosted web fonts
