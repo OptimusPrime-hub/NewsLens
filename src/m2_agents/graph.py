@@ -43,6 +43,7 @@ from src.m2_agents.crag import GradeEnum, LLMCRAGEvaluator, QueryRewriter
 from src.m2_agents.retrieval import RetrievalManager, build_filters
 from src.m2_agents.schemas import AnalysisMetadata, AnalysisResult, TraceEntry
 from uuid import uuid4
+from src.shared.llm_factory import get_active_model_name
 from src.m2_agents.state import AgentState
 from src.m2_agents.summary_agent import summary_agent_node
 from src.m2_agents.supervisor import route_by_intent, supervisor_node
@@ -288,7 +289,7 @@ async def run_analysis(intent_payload: IntentPayload) -> AnalysisResult:
             retrieval_tier_used="none",
             total_chunks_retrieved=0,
             total_chunks_used=0,
-            model_versions={"primary": "unknown"},
+            model_versions={"primary": get_active_model_name()},
         )
 
         result = AnalysisResult(

@@ -13,6 +13,7 @@ from uuid import uuid4
 
 from src.m2_agents.schemas import AnalysisMetadata, AnalysisResult, TraceEntry
 from src.m2_agents.state import AgentState
+from src.shared.llm_factory import get_active_model_name
 from src.shared.logging import get_logger
 
 logger = get_logger(__name__)
@@ -47,7 +48,7 @@ async def assemble_result_node(state: AgentState) -> dict:
         retrieval_tier_used=state.get("retrieval_tier", "unknown"),
         total_chunks_retrieved=len(retrieved),
         total_chunks_used=len(relevant),
-        model_versions={"primary": "gpt-4o-mini"},
+        model_versions={"primary": get_active_model_name()},
     )
 
     # ── Assembly trace entry ─────────────────────────────────────────────

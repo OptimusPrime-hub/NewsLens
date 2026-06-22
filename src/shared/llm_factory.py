@@ -74,6 +74,22 @@ def get_chat_model_with_fallback(temperature: float = 0.0) -> BaseChatModel:
     )
 
 
+def get_active_model_name() -> str:
+    """
+    Get the name of the active chat model from the fallback chain.
+    If all external LLM providers are unavailable, returns 'regex-fallback'.
+    """
+    try:
+        llm = get_chat_model_with_fallback()
+        if hasattr(llm, "model_name"):
+            return getattr(llm, "model_name")
+        if hasattr(llm, "model"):
+            return getattr(llm, "model")
+        return str(llm)
+    except Exception:
+        return "regex-fallback"
+
+
 # ── Private builder helpers ──────────────────────────────────────────────────
 
 
