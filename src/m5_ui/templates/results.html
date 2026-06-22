@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Results — NewsLens</title>
+  <meta name="description" content="Multi-publisher news analysis results with agent trace, timeline, bias, and source attribution." />
+  <link rel="stylesheet" href="/static/css/main.css" />
+  <link rel="stylesheet" href="/static/css/components.css" />
+  <link rel="stylesheet" href="/static/css/animations.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body>
+
+<!-- ── Nav ── -->
+<nav class="nav">
+  <div class="nav-inner">
+    <a href="/" class="nav-logo gradient-text" style="text-decoration:none;">NewsLens</a>
+    <div style="flex:1; max-width:460px; margin:0 2rem;">
+      <input id="nav-query" class="input" type="text" placeholder="New query…"
+             style="font-size:0.875rem; padding:0.5rem 1rem;" />
+    </div>
+    <button class="btn btn-primary" onclick="reanalyze()" style="padding:0.5rem 1.25rem; font-size:0.875rem;">
+      Analyze
+    </button>
+  </div>
+</nav>
+
+<!-- ── Main layout ── -->
+<div style="display:grid; grid-template-columns:300px 1fr; height:calc(100vh - 57px); overflow:hidden;">
+
+  <!-- ── Left: Trace Panel + Metadata ── -->
+  <aside style="overflow-y:auto; border-right:1px solid var(--border-subtle); padding:1.5rem; display:flex; flex-direction:column; gap:1rem;">
+
+    <!-- Query header -->
+    <div>
+      <div class="trace-header" style="margin-bottom:0.5rem;">Query</div>
+      <p id="result-query" style="font-size:0.875rem; font-weight:600; color:var(--text-primary);"></p>
+    </div>
+
+    <!-- Retrieval tier badge -->
+    <div>
+      <div class="trace-header" style="margin-bottom:0.5rem;">Retrieval Source</div>
+      <span id="tier-badge" class="badge badge-live">LIVE INDEX</span>
+    </div>
+
+    <!-- Overall confidence -->
+    <div>
+      <div class="trace-header" style="margin-bottom:0.5rem;">Overall Confidence</div>
+      <div style="display:flex; align-items:center; gap:0.75rem;">
+        <div class="confidence-bar" style="flex:1;">
+          <div class="confidence-fill progress-bar-fill" id="confidence-fill" style="width:0%;"></div>
+        </div>
+        <span id="confidence-pct" style="font-size:0.875rem; font-weight:700; color:var(--text-primary); white-space:nowrap;"></span>
+      </div>
+    </div>
+
+    <!-- Metadata card -->
+    <div>
+      <div class="trace-header" style="margin-bottom:0.5rem;">Run Metadata</div>
+      <div class="metadata-card">
+        <div class="meta-item">
+          <span class="meta-label">Latency</span>
+          <span class="meta-value mono" id="meta-latency">—</span>
+        </div>
+        <div class="meta-item">
+          <span class="meta-label">Chunks Retrieved</span>
+          <span class="meta-value" id="meta-retrieved">—</span>
+        </div>
+        <div class="meta-item">
+          <span class="meta-label">Chunks Used</span>
+          <span class="meta-value" id="meta-used">—</span>
+        </div>
+        <div class="meta-item">
+          <span class="meta-label">Model</span>
+          <span class="meta-value mono" id="meta-model">—</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Divider -->
+    <div class="divider"></div>
+
+    <!-- Agent trace steps -->
+    <div class="trace-panel">
+      <div class="trace-header">Agent Trace</div>
+      <div id="trace-steps" style="display:flex; flex-direction:column; gap:0.5rem;"></div>
+    </div>
+
+    <!-- Warnings -->
+    <div id="warnings-section" class="hidden">
+      <div class="divider"></div>
+      <div class="trace-header" style="margin-bottom:0.5rem; color:var(--accent-amber);">⚠ Warnings</div>
+      <ul id="warnings-list" style="list-style:none; display:flex; flex-direction:column; gap:0.375rem;"></ul>
+    </div>
+  </aside>
+
+  <!-- ── Right: Tabs + Content ── -->
+  <main style="overflow-y:auto; display:flex; flex-direction:column;">
+
+    <!-- Tabs bar -->
+    <div style="padding:1rem 1.5rem; border-bottom:1px solid var(--border-subtle); position:sticky; top:0; background:rgba(8,11,20,0.9); backdrop-filter:blur(12px); z-index:10;">
+      <div class="tabs" style="max-width:500px;">
+        <button class="tab-btn active" id="tab-timeline" onclick="switchTab('timeline')">🕐 Timeline</button>
+        <button class="tab-btn" id="tab-summary"  onclick="switchTab('summary')">📊 Summary</button>
+        <button class="tab-btn" id="tab-bias"     onclick="switchTab('bias')">⚖️ Bias</button>
+        <button class="tab-btn" id="tab-sources"  onclick="switchTab('sources')">📰 Sources</button>
+      </div>
+    </div>
+
+    <!-- Content area -->
+    <div style="flex:1; padding:1.5rem;">
+
+      <!-- TIMELINE TAB (default) -->
+      <div class="tab-panel active" id="panel-timeline">
+        <div style="margin-bottom:1.25rem;">
+          <h2 style="margin-bottom:0.25rem;">Event Timeline</h2>
+          <p id="timeline-meta" style="font-size:0.875rem;"></p>
+        </div>
+        <div id="timeline-skeleton">
+          <div class="skeleton skeleton-block" style="height:140px;"></div>
+        </div>
+        <div id="timeline-container" class="timeline-track hidden"></div>
+        <div id="timeline-empty" class="hidden" style="text-align:center; padding:3rem; color:var(--text-muted);">
+          No timeline data available for this query.
+        </div>
+      </div>
+
+      <!-- SUMMARY TAB -->
+      <div class="tab-panel" id="panel-summary">
+        <h2 style="margin-bottom:1rem;">Cross-Publisher Summary</h2>
+        <div id="summary-skeleton">
+          <div class="skeleton skeleton-title"></div>
+          <div class="skeleton skeleton-text"></div>
+          <div class="skeleton skeleton-text" style="width:85%;"></div>
+          <div class="skeleton skeleton-text" style="width:70%;"></div>
+        </div>
+        <div id="summary-container" class="hidden stagger"></div>
+        <div id="summary-empty" class="hidden" style="text-align:center; padding:3rem; color:var(--text-muted);">
+          No summary available for this query.
+        </div>
+      </div>
+
+      <!-- BIAS TAB -->
+      <div class="tab-panel" id="panel-bias">
+        <h2 style="margin-bottom:1rem;">Bias &amp; Framing Analysis</h2>
+        <div id="bias-skeleton">
+          <div class="skeleton skeleton-chart"></div>
+          <div class="skeleton skeleton-chart"></div>
+        </div>
+        <div id="bias-container" class="hidden">
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:1.5rem; margin-bottom:1.5rem;">
+            <div class="glass" style="padding:1.5rem;">
+              <h4 style="margin-bottom:1rem;">Sentiment by Publisher</h4>
+              <canvas id="chart-sentiment" height="220"></canvas>
+            </div>
+            <div class="glass" style="padding:1.5rem;">
+              <h4 style="margin-bottom:1rem;">Framing Dimensions</h4>
+              <canvas id="chart-framing" height="220"></canvas>
+            </div>
+          </div>
+          <div id="bias-profiles" class="stagger" style="display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:1rem;"></div>
+        </div>
+        <div id="bias-empty" class="hidden" style="text-align:center; padding:3rem; color:var(--text-muted);">
+          Bias analysis is only available for BIAS_DETECTION queries.
+        </div>
+      </div>
+
+      <!-- SOURCES TAB -->
+      <div class="tab-panel" id="panel-sources">
+        <h2 style="margin-bottom:1rem;">Retrieved Sources</h2>
+        <div id="sources-skeleton">
+          <div class="skeleton skeleton-block"></div>
+          <div class="skeleton skeleton-block"></div>
+          <div class="skeleton skeleton-block"></div>
+        </div>
+        <div id="sources-container" class="hidden stagger" style="display:grid; grid-template-columns:repeat(auto-fill,minmax(300px,1fr)); gap:1rem;"></div>
+      </div>
+
+    </div>
+  </main>
+</div>
+
+<script src="/static/js/main.js"></script>
+<script src="/static/js/trace_panel.js"></script>
+<script src="/static/js/timeline.js"></script>
+<script src="/static/js/bias_chart.js"></script>
+<script>
+// Tab switcher
+function switchTab(name) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  document.getElementById('panel-' + name).classList.add('active');
+}
+
+// Re-analyze from nav bar
+function reanalyze() {
+  const q = document.getElementById('nav-query').value.trim();
+  if (q) { sessionStorage.setItem('nl_query', q); window.location.href = '/'; }
+}
+
+// Auto-load result from sessionStorage on page load
+window.addEventListener('DOMContentLoaded', () => {
+  const raw = sessionStorage.getItem('nl_result');
+  if (raw) {
+    try { renderResult(JSON.parse(raw)); } catch(e) { console.error(e); }
+  }
+  const q = sessionStorage.getItem('nl_query');
+  if (q) document.getElementById('nav-query').value = q;
+});
+</script>
+</body>
+</html>
