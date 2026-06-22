@@ -1,0 +1,124 @@
+/* ============================================================
+   NewsLens — Animations (animations.css)
+   Keyframes: skeleton shimmer, fade-in, slide-up, pulse, gradient
+   ============================================================ */
+
+/* ── Keyframes ────────────────────────────────────────────── */
+@keyframes shimmer {
+  0%   { background-position: -400px 0; }
+  100% { background-position:  400px 0; }
+}
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes slideInLeft {
+  from { opacity: 0; transform: translateX(-20px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+@keyframes pulse-ring {
+  0%   { transform: scale(1);   opacity: 1; }
+  80%  { transform: scale(2.2); opacity: 0; }
+  100% { transform: scale(2.2); opacity: 0; }
+}
+@keyframes gradient-pan {
+  0%   { background-position: 0%   50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0%   50%; }
+}
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+@keyframes stepReveal {
+  from { opacity: 0; transform: translateX(-12px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+@keyframes progressFill {
+  from { width: 0%; }
+}
+
+/* ── Loading skeleton ─────────────────────────────────────── */
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--bg-elevated)   25%,
+    rgba(255,255,255,0.06) 37%,
+    var(--bg-elevated)   63%
+  );
+  background-size: 800px 100%;
+  animation: shimmer 1.4s infinite linear;
+  border-radius: var(--radius-sm);
+}
+.skeleton-text  { height: 1rem;    margin-bottom: var(--space-2); }
+.skeleton-title { height: 1.5rem;  width: 60%; margin-bottom: var(--space-3); }
+.skeleton-block { height: 80px;    margin-bottom: var(--space-4); }
+.skeleton-chart { height: 200px;   margin-bottom: var(--space-4); }
+
+/* ── Spinner ──────────────────────────────────────────────── */
+.spinner {
+  width: 20px; height: 20px;
+  border: 2px solid var(--border-subtle);
+  border-top-color: var(--accent-blue);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  flex-shrink: 0;
+}
+.spinner-lg {
+  width: 36px; height: 36px;
+  border-width: 3px;
+}
+
+/* ── Entrance animations ──────────────────────────────────── */
+.anim-fade   { animation: fadeIn   var(--duration-slow) var(--ease-snappy) both; }
+.anim-up     { animation: slideUp  var(--duration-slow) var(--ease-snappy) both; }
+.anim-left   { animation: slideInLeft var(--duration-slow) var(--ease-snappy) both; }
+
+/* Staggered children */
+.stagger > * { animation: slideUp var(--duration-slow) var(--ease-snappy) both; }
+.stagger > *:nth-child(1) { animation-delay: 0ms; }
+.stagger > *:nth-child(2) { animation-delay: 60ms; }
+.stagger > *:nth-child(3) { animation-delay: 120ms; }
+.stagger > *:nth-child(4) { animation-delay: 180ms; }
+.stagger > *:nth-child(5) { animation-delay: 240ms; }
+.stagger > *:nth-child(6) { animation-delay: 300ms; }
+
+/* ── Hero animated gradient background ───────────────────── */
+.hero-gradient-bg {
+  background: linear-gradient(270deg, #0f0c29, #302b63, #24243e, #0f0c29);
+  background-size: 400% 400%;
+  animation: gradient-pan 12s ease infinite;
+}
+
+/* ── Pulsing live dot ─────────────────────────────────────── */
+.live-dot {
+  position: relative;
+  display: inline-block;
+  width: 8px; height: 8px;
+  background: var(--accent-green);
+  border-radius: 50%;
+}
+.live-dot::before {
+  content: '';
+  position: absolute;
+  inset: -3px;
+  border-radius: 50%;
+  background: var(--accent-green);
+  animation: pulse-ring 1.5s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+}
+
+/* ── Progress bar animated fill ──────────────────────────── */
+.progress-bar-fill {
+  animation: progressFill 0.8s var(--ease-snappy) both;
+}
+
+/* ── Trace step reveal ────────────────────────────────────── */
+.trace-step { animation: stepReveal 0.35s var(--ease-snappy) both; }
+.trace-step:nth-child(1) { animation-delay: 0ms; }
+.trace-step:nth-child(2) { animation-delay: 80ms; }
+.trace-step:nth-child(3) { animation-delay: 160ms; }
+.trace-step:nth-child(4) { animation-delay: 240ms; }
+.trace-step:nth-child(5) { animation-delay: 320ms; }
