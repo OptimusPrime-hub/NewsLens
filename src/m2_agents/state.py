@@ -13,7 +13,7 @@ from typing import Annotated, TypedDict
 
 from src.m1_intent.schemas import IntentPayload
 from src.m2_agents.crag.schemas import CRAGGrade
-from src.m2_agents.schemas import RetrievedChunk, SummaryResult, TraceEntry
+from src.m2_agents.schemas import AnalysisResult, RetrievedChunk, SummaryResult, TraceEntry
 from src.m3_bias.schemas import BiasAnalysisResult
 from src.m4_timeline.schemas import TimelineResult
 
@@ -53,3 +53,6 @@ class AgentState(TypedDict):
 
     # ── Control flow ─────────────────────────────────────────────────────────
     iteration_count: int
+
+    # ── Final Output ─────────────────────────────────────────────────────────
+    _final_result: AnalysisResult | None

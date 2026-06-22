@@ -36,7 +36,7 @@ class AnalysisMetadata(BaseModel):
     session_id: UUID
     query_timestamp: datetime
     total_latency_ms: int
-    retrieval_tier_used: Literal["pathway", "bing", "scraper"]
+    retrieval_tier_used: str
     total_chunks_retrieved: int
     total_chunks_used: int
     model_versions: dict[str, str]

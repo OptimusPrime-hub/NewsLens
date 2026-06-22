@@ -41,7 +41,8 @@ from src.m2_agents.assembler import assemble_result_node
 from src.m2_agents.bias_agent import bias_agent_node
 from src.m2_agents.crag import GradeEnum, LLMCRAGEvaluator, QueryRewriter
 from src.m2_agents.retrieval import RetrievalManager, build_filters
-from src.m2_agents.schemas import AnalysisResult, TraceEntry
+from src.m2_agents.schemas import AnalysisMetadata, AnalysisResult, TraceEntry
+from uuid import uuid4
 from src.m2_agents.state import AgentState
 from src.m2_agents.summary_agent import summary_agent_node
 from src.m2_agents.supervisor import route_by_intent, supervisor_node
@@ -264,6 +265,7 @@ async def run_analysis(intent_payload: IntentPayload) -> AnalysisResult:
         "agent_trace": [],
         "error_log": [],
         "iteration_count": 0,
+        "_final_result": None,
     }
 
     logger.info(
@@ -279,12 +281,21 @@ async def run_analysis(intent_payload: IntentPayload) -> AnalysisResult:
 
     if result is None:
         # Fallback: this shouldn't happen, but build a minimal result
+        fallback_metadata = AnalysisMetadata(
+            session_id=uuid4(),
+            query_timestamp=datetime.now(tz=UTC),
+            total_latency_ms=0,
+            retrieval_tier_used="none",
+            total_chunks_retrieved=0,
+            total_chunks_used=0,
+            model_versions={"primary": "unknown"},
+        )
 
         result = AnalysisResult(
             intent=intent_payload.intent,
             raw_query=intent_payload.raw_query,
             agent_trace=final_state.get("agent_trace", []),
-            metadata=AnalysisResult.__fields__["metadata"].default,
+            metadata=fallback_metadata,
             overall_confidence=0.0,
             warnings=["Pipeline completed without assembling a result"],
         )

@@ -11,7 +11,6 @@ from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
-from fastapi.templating import Jinja2Templates
 
 from src.m5_ui.api.routes import router
 from src.shared.logging import get_logger
@@ -20,11 +19,7 @@ logger = get_logger(__name__)
 
 # ── Paths ─────────────────────────────────────────────────────────────────────
 _UI_ROOT = Path(__file__).resolve().parent.parent          # src/m5_ui/
-TEMPLATES_DIR = _UI_ROOT / "templates"
 STATIC_DIR = _UI_ROOT / "static"
-
-# ── Jinja2 template engine (shared instance) ──────────────────────────────────
-templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
 
 
 def create_app() -> FastAPI:
