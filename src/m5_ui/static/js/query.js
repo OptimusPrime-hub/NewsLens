@@ -84,6 +84,7 @@
       const decoder = new TextDecoder();
       let buffer = '';
       let result = null;
+      let eventType = null;
 
       while (true) {
         const { done, value } = await reader.read();
@@ -94,7 +95,6 @@
         const lines = buffer.split('\n');
         buffer = lines.pop(); // keep incomplete line
 
-        let eventType = null;
         for (const line of lines) {
           if (line.startsWith('event: ')) { eventType = line.slice(7).trim(); continue; }
           if (line.startsWith('data: ') && eventType) {
