@@ -35,7 +35,7 @@ class FramingExtractor:
 
         try:
             # Get primary LLM with fallback
-            llm = get_chat_model_with_fallback(temperature=0.0)
+            llm = get_chat_model_with_fallback(temperature=0.0, purpose="m5")
 
             # Bind structured output
             structured_llm = llm.with_structured_output(FramingVector)

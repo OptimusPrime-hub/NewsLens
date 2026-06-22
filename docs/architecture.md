@@ -735,7 +735,7 @@ class TimelineResult(BaseModel):
 | `UserQuery` | M5 (UI) | M1 | `UserQuery` | `query: str, session_id: UUID, timestamp: datetime` |
 | `IntentPayload` | M1 | M2 | `IntentPayload` | `intent, entities, publishers, date_range, confidence` |
 | `RetrievalRequest` | M2 (Agents) | Pathway VectorStore | `RetrievalRequest` | `query_embedding, k, filters: MetadataFilter` |
-| `RetrievedChunk` | Pathway VectorStore | M2 (CRAG) | `RetrievedChunk` | `chunk_id, chunk_text, publisher, publish_ts, relevance_score` |
+| `RetrievedChunk` | Pathway VectorStore | M2 (CRAG) | `RetrievedChunk` | `chunk_id, chunk_text, publisher, publish_ts, relevance_score, source_url` |
 | `CRAGGrade` | M2 (CRAG Evaluator) | M2 (Generation) | `CRAGGrade` | `chunk_id, grade: GradeEnum, reason: str` |
 | `AgentState` | M2 (LangGraph) | All M2 nodes | `AgentState` | `intent_payload, retrieved_chunks, crag_grades, agent_trace, error_log` |
 | `BiasAnalysisResult` | M3 | M2 → M5 | `BiasAnalysisResult` | `publisher_profiles, pairwise_divergence_matrix, summary_explanation` |

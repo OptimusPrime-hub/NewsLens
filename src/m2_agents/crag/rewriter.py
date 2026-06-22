@@ -29,7 +29,7 @@ class QueryRewriter:
 
     async def _get_llm(self):  # noqa: ANN202
         if self._llm is None:
-            self._llm = get_chat_model_with_fallback(temperature=0.3)
+            self._llm = get_chat_model_with_fallback(temperature=0.3, purpose="m1")
         return self._llm
 
     async def rewrite(self, original_query: str) -> str:

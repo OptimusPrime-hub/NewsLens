@@ -24,6 +24,7 @@ def get_chat_model(
     provider: Provider = "openai",
     model: str | None = None,
     temperature: float = 0.0,
+    purpose: Literal["m1", "m5"] = "m1",
 ) -> BaseChatModel:
     """
     Instantiate a chat model for the requested provider.
@@ -32,6 +33,7 @@ def get_chat_model(
         provider: Which LLM backend to use.
         model: Model name override (uses config default if None).
         temperature: Sampling temperature.
+        purpose: What the LLM is being used for ("m1" or "m5").
 
     Returns:
         A LangChain BaseChatModel ready for `.ainvoke()`.
@@ -42,7 +44,8 @@ def get_chat_model(
     settings = get_settings()
 
     if provider == "openai":
-        return _build_openai(model or settings.primary_chat_model, temperature)
+        default_model = settings.m1_llm_model if purpose == "m1" else settings.m5_llm_model
+        return _build_openai(model or default_model, temperature)
     if provider == "anthropic":
         return _build_anthropic(model or settings.secondary_chat_model, temperature)
     if provider == "ollama":
@@ -51,7 +54,10 @@ def get_chat_model(
     raise LLMProviderUnavailableError(f"Unknown provider: {provider}")
 
 
-def get_chat_model_with_fallback(temperature: float = 0.0) -> BaseChatModel:
+def get_chat_model_with_fallback(
+    temperature: float = 0.0,
+    purpose: Literal["m1", "m5"] = "m1",
+) -> BaseChatModel:
     """
     Try OpenAI → Anthropic → Ollama.  Return the first that initialises.
 
@@ -61,8 +67,8 @@ def get_chat_model_with_fallback(temperature: float = 0.0) -> BaseChatModel:
     errors: list[str] = []
     for provider in ("openai", "anthropic", "ollama"):
         try:
-            llm = get_chat_model(provider=provider, temperature=temperature)  # type: ignore[arg-type]
-            logger.info("LLM provider ready", provider=provider)
+            llm = get_chat_model(provider=provider, temperature=temperature, purpose=purpose)  # type: ignore[arg-type]
+            logger.info("LLM provider ready", provider=provider, purpose=purpose)
             return llm
         except Exception as exc:  # noqa: BLE001
             errors.append(f"{provider}: {exc}")
@@ -74,13 +80,13 @@ def get_chat_model_with_fallback(temperature: float = 0.0) -> BaseChatModel:
     )
 
 
-def get_active_model_name() -> str:
+def get_active_model_name(purpose: Literal["m1", "m5"] = "m1") -> str:
     """
     Get the name of the active chat model from the fallback chain.
     If all external LLM providers are unavailable, returns 'regex-fallback'.
     """
     try:
-        llm = get_chat_model_with_fallback()
+        llm = get_chat_model_with_fallback(purpose=purpose)
         if hasattr(llm, "model_name"):
             return getattr(llm, "model_name")
         if hasattr(llm, "model"):

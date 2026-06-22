@@ -110,7 +110,7 @@ class IntentClassifier:
         config = get_config()
 
         try:
-            llm = get_chat_model_with_fallback(temperature=0.0)
+            llm = get_chat_model_with_fallback(temperature=0.0, purpose="m1")
             structured_llm = llm.with_structured_output(IntentPayload)
 
             messages = self._get_messages(query)
@@ -151,7 +151,7 @@ class IntentClassifier:
         config = get_config()
 
         try:
-            llm = get_chat_model_with_fallback(temperature=0.0)
+            llm = get_chat_model_with_fallback(temperature=0.0, purpose="m1")
             structured_llm = llm.with_structured_output(IntentPayload)
 
             messages = self._get_messages(query)

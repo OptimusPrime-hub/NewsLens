@@ -37,6 +37,8 @@ class AppSettings(BaseSettings):
 
 
     # ── Model Selection ──────────────────────────────────────────────────────
+    m1_llm_model: str = Field(default="gpt-4o-mini")
+    m5_llm_model: str = Field(default="gpt-4o")
     primary_chat_model: str = Field(default="gpt-4o-mini")
     secondary_chat_model: str = Field(default="claude-3-5-haiku-20241022")
     local_chat_model: str = Field(default="llama3.2:3b")

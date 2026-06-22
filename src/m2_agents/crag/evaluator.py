@@ -60,7 +60,7 @@ class LLMCRAGEvaluator(BaseCRAGEvaluator):
 
     async def _get_llm(self):  # noqa: ANN202
         if self._llm is None:
-            self._llm = get_chat_model_with_fallback(temperature=0.0)
+            self._llm = get_chat_model_with_fallback(temperature=0.0, purpose="m1")
         return self._llm
 
     async def evaluate(
@@ -77,12 +77,26 @@ class LLMCRAGEvaluator(BaseCRAGEvaluator):
         if not chunks:
             return []
 
-        llm = await self._get_llm()
-        grades: list[CRAGGrade] = []
+        try:
+            llm = await self._get_llm()
+            grades: list[CRAGGrade] = []
 
-        for chunk in chunks:
-            grade = await self._grade_single(llm, query, chunk)
-            grades.append(grade)
+            for chunk in chunks:
+                grade = await self._grade_single(llm, query, chunk)
+                grades.append(grade)
+        except Exception as exc:  # noqa: BLE001
+            logger.warning(
+                "CRAG evaluation failed completely, defaulting all chunks to AMBIGUOUS",
+                error=str(exc)
+            )
+            return [
+                CRAGGrade(
+                    chunk_id=chunk.chunk_id,
+                    grade=GradeEnum.AMBIGUOUS,
+                    reason=f"LLM evaluation failed or offline: {exc}",
+                )
+                for chunk in chunks
+            ]
 
         relevant = sum(1 for g in grades if g.grade == GradeEnum.RELEVANT)
         logger.info(

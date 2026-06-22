@@ -59,7 +59,7 @@ class EventExtractor:
         chunks_text = self._format_chunks(chunks)
 
         try:
-            llm = get_chat_model_with_fallback(temperature=0.0)
+            llm = get_chat_model_with_fallback(temperature=0.0, purpose="m5")
             structured_llm = llm.with_structured_output(ExtractedTimelinePayload)
 
             system_msg = SystemMessage(content=TIMELINE_PREPARATION_SYSTEM_PROMPT)

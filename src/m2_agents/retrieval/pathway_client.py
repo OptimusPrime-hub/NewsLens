@@ -143,6 +143,7 @@ class PathwayRetriever(BaseRetriever):
                         ),
                     ),
                     relevance_score=float(item.get("score", item.get("dist", 0.0))),
+                    source_url=item.get("metadata", {}).get("url", ""),
                 )
                 chunks.append(chunk)
             except (KeyError, ValueError, TypeError) as exc:

@@ -20,6 +20,7 @@ class RetrievedChunk(BaseModel):
     publisher: str
     publish_ts: datetime
     relevance_score: float
+    source_url: str | None = None
 
 class TraceEntry(BaseModel):
     step_index: int

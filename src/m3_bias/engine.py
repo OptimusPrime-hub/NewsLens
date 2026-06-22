@@ -226,7 +226,7 @@ class BiasEngine:
                 )
             summary_data = "\n---\n".join(summary_list)
 
-            llm = get_chat_model_with_fallback(temperature=0.3)
+            llm = get_chat_model_with_fallback(temperature=0.3, purpose="m5")
             messages = [
                 SystemMessage(content=BIAS_EXPLANATION_SYSTEM_PROMPT),
                 HumanMessage(content=build_bias_explanation_user_prompt(topic, summary_data)),

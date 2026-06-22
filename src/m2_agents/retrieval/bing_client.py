@@ -113,6 +113,7 @@ class BingRetriever(BaseRetriever):
                     publisher=page.get("displayUrl", "web").split("/")[0],
                     publish_ts=_parse_bing_date(page.get("dateLastCrawled")),
                     relevance_score=round(1.0 - (idx * 0.05), 2),  # rank-based score
+                    source_url=page.get("url", ""),
                 ),
             )
 

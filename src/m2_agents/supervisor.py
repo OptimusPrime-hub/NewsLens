@@ -61,9 +61,11 @@ def route_by_intent(state: AgentState) -> str:
     """
     payload = state["intent_payload"]
 
-    # Low confidence → default to summary (safest)
-    if payload.confidence < 0.80:
-        logger.info("Low confidence, defaulting to summary", confidence=payload.confidence)
+    # Very low confidence → default to summary (safest)
+    # Note: regex fallback returns 0.50 with correct intent detection,
+    # so we only override for truly unconfident classifications.
+    if payload.confidence < 0.30:
+        logger.info("Very low confidence, defaulting to summary", confidence=payload.confidence)
         return "summary_agent"
 
     route_map = {

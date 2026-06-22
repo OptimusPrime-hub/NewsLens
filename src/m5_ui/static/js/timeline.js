@@ -112,6 +112,21 @@ function showEventOverlay(evt) {
     LOW: 'badge-low', UNVERIFIED: 'badge-unverified',
   }[evt.confidence] || 'badge-unverified';
 
+  const sourcesHtml = evt.source_articles && evt.source_articles.length ? `
+    <div style="margin-bottom: 1.25rem;">
+      <div style="font-size:0.75rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;margin-bottom:0.375rem;">Cited Sources</div>
+      <ul style="list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:0.375rem;">
+        ${evt.source_articles.map(ref => `
+          <li>
+            <a href="${ref.url}" target="_blank" style="font-size:0.8rem;color:var(--accent-cyan);text-decoration:none;display:inline-flex;gap:4px;align-items:center;">
+              🔗 [${sanitize(ref.publisher)}] ${sanitize(ref.title || 'Source article')}
+            </a>
+          </li>
+        `).join('')}
+      </ul>
+    </div>
+  ` : '';
+
   overlay.innerHTML = `
     <div class="glass" style="max-width:520px;width:90%;padding:2rem;position:relative;">
       <button onclick="document.getElementById('event-overlay').remove()"
@@ -123,6 +138,7 @@ function showEventOverlay(evt) {
       <p style="font-size:0.875rem;color:var(--text-secondary);line-height:1.7;margin-bottom:1rem;">
         ${sanitize(evt.description || 'No description available.')}
       </p>
+      ${sourcesHtml}
       <div style="display:flex;gap:0.5rem;flex-wrap:wrap;align-items:center;">
         <span class="badge ${confBadgeClass}">${evt.confidence || 'UNVERIFIED'}</span>
         ${(evt.publishers||[]).map(p => `<span class="badge badge-ambiguous">${sanitize(p)}</span>`).join('')}
