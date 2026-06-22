@@ -20,8 +20,8 @@ from fastapi.responses import HTMLResponse, JSONResponse, StreamingResponse
 from src.m1_intent.classifier import IntentClassifier
 from src.m2_agents.graph import run_analysis
 from src.m2_agents.schemas import AnalysisResult
+from src.m5_ui.api.deps import render
 from src.m5_ui.api.schemas import AnalyzeRequest
-from src.m5_ui.api.server import templates
 from src.shared.logging import get_logger
 
 logger = get_logger(__name__)
@@ -49,17 +49,17 @@ def _sse_event(event: str, data: dict) -> str:
 
 @router.get("/", response_class=HTMLResponse)
 async def index(request: Request) -> HTMLResponse:
-    return templates.TemplateResponse("index.html", {"request": request})
+    return render("index.html")
 
 
 @router.get("/results", response_class=HTMLResponse)
 async def results(request: Request) -> HTMLResponse:
-    return templates.TemplateResponse("results.html", {"request": request})
+    return render("results.html")
 
 
 @router.get("/about", response_class=HTMLResponse)
 async def about(request: Request) -> HTMLResponse:
-    return templates.TemplateResponse("about.html", {"request": request})
+    return render("about.html")
 
 
 @router.get("/api/health")
