@@ -18,6 +18,7 @@ from tenacity import (
 )
 
 from src.m2_agents.retrieval.base import BaseRetriever
+from src.m2_agents.retrieval.failure_simulation import raise_if_simulated
 from src.m2_agents.schemas import RetrievedChunk
 from src.shared.config import get_settings
 from src.shared.exceptions import BingRetrievalError
@@ -66,6 +67,8 @@ class BingRetriever(BaseRetriever):
         Raises:
             BingRetrievalError: If Bing API key is missing or the call fails.
         """
+        raise_if_simulated("bing", BingRetrievalError)
+
         if not self._api_key:
             raise BingRetrievalError("BING_API_KEY not configured")
 

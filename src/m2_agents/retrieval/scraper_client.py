@@ -12,6 +12,7 @@ from datetime import UTC, datetime
 import httpx
 
 from src.m2_agents.retrieval.base import BaseRetriever
+from src.m2_agents.retrieval.failure_simulation import raise_if_simulated
 from src.m2_agents.schemas import RetrievedChunk
 from src.shared.exceptions import ScraperRetrievalError
 from src.shared.logging import get_logger
@@ -67,6 +68,8 @@ class ScraperRetriever(BaseRetriever):
         Raises:
             ScraperRetrievalError: If all scraping attempts fail.
         """
+        raise_if_simulated("scraper", ScraperRetrievalError)
+
         urls = await self._find_urls(query, count=top_k)
         if not urls:
             raise ScraperRetrievalError("No URLs found to scrape")

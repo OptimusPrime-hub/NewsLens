@@ -1,14 +1,13 @@
 """
-Retrieval orchestrator with 3-tier fallback cascade.
+Retrieval orchestrator with tiered fallback cascade.
 
 RetrievalManager owns ONLY the orchestration logic:
-  Tier 0: Pathway VectorStore (primary)
-  Tier 1: Query rewrite + Pathway retry
+  Tier 0: Pathway VectorStore (Linux/Docker) or LocalRetriever (Windows)
+  Tier 1: Query rewrite + primary retry
   Tier 2: Bing Search API
   Tier 3: Web scraper
 
-It does NOT fetch, parse, chunk, or retry internally — each
-BaseRetriever implementation handles its own concerns.
+Each BaseRetriever handles its own HTTP/retry concerns.
 """
 
 from __future__ import annotations
@@ -17,7 +16,9 @@ from typing import TYPE_CHECKING
 
 from src.m2_agents.retrieval.base import BaseRetriever
 from src.m2_agents.retrieval.bing_client import BingRetriever
+from src.m2_agents.retrieval.local_client import LocalRetriever
 from src.m2_agents.retrieval.pathway_client import PathwayRetriever
+from src.m2_agents.retrieval.runtime import use_pathway_primary
 from src.m2_agents.retrieval.scraper_client import ScraperRetriever
 from src.m2_agents.schemas import RetrievedChunk
 from src.shared.config import get_settings
@@ -29,6 +30,14 @@ if TYPE_CHECKING:
     from src.m2_agents.retrieval.filters import RetrievalFilters
 
 logger = get_logger(__name__)
+
+
+def _default_retrievers() -> tuple[BaseRetriever, BaseRetriever, BaseRetriever]:
+    """Pick the primary retriever based on platform and installed backends."""
+    if use_pathway_primary():
+        return PathwayRetriever(), BingRetriever(), ScraperRetriever()
+    logger.info("Using in-process LocalRetriever as primary (Pathway unavailable)")
+    return LocalRetriever(), BingRetriever(), ScraperRetriever()
 
 
 class RetrievalManager:
@@ -57,9 +66,7 @@ class RetrievalManager:
             self._secondary = retrievers[1] if len(retrievers) > 1 else BingRetriever()
             self._tertiary = retrievers[2] if len(retrievers) > 2 else ScraperRetriever()
         else:
-            self._primary = PathwayRetriever()
-            self._secondary = BingRetriever()
-            self._tertiary = ScraperRetriever()
+            self._primary, self._secondary, self._tertiary = _default_retrievers()
 
     async def retrieve(
         self,
@@ -75,37 +82,43 @@ class RetrievalManager:
 
         Returns:
             Tuple of (chunks, tier_name). tier_name is one of
-            'pathway', 'bing', 'scraper', or 'partial'.
+            'pathway', 'local', 'bing', or 'scraper'.
 
         Raises:
             FallbackExhaustedError: Only if every tier fails AND produces
                                      zero chunks total.
         """
         filter_dict = filters.to_dict() if filters else None
+        search_query = query
 
-        # ── Tier 0: Primary retriever (Pathway) ─────────────────────────────
-        chunks = await self._try_retriever(self._primary, query, filter_dict)
+        # ── Tier 0: Primary retriever ────────────────────────────────────────
+        chunks = await self._try_retriever(self._primary, search_query, filter_dict)
         if self._is_sufficient(chunks):
-            logger.info("Tier 0 succeeded", tier="pathway", n_chunks=len(chunks))
+            logger.info("Tier 0 succeeded", tier=self._primary.tier_name, n_chunks=len(chunks))
             return chunks, self._primary.tier_name
 
         # ── Tier 1: Query rewrite + primary retry ────────────────────────────
         if self._rewriter is not None:
             rewritten = await self._try_rewrite(query)
             if rewritten and rewritten != query:
-                chunks = await self._try_retriever(self._primary, rewritten, filter_dict)
+                search_query = rewritten
+                chunks = await self._try_retriever(self._primary, search_query, filter_dict)
                 if self._is_sufficient(chunks):
-                    logger.info("Tier 1 succeeded", tier="pathway_rewrite", n_chunks=len(chunks))
+                    logger.info(
+                        "Tier 1 succeeded",
+                        tier=f"{self._primary.tier_name}_rewrite",
+                        n_chunks=len(chunks),
+                    )
                     return chunks, self._primary.tier_name
 
         # ── Tier 2: Bing Search ──────────────────────────────────────────────
-        chunks = await self._try_retriever(self._secondary, query, filter_dict)
+        chunks = await self._try_retriever(self._secondary, search_query, filter_dict)
         if chunks:
             logger.info("Tier 2 succeeded", tier="bing", n_chunks=len(chunks))
             return chunks, self._secondary.tier_name
 
         # ── Tier 3: Web scraper ──────────────────────────────────────────────
-        chunks = await self._try_retriever(self._tertiary, query, filter_dict)
+        chunks = await self._try_retriever(self._tertiary, search_query, filter_dict)
         if chunks:
             logger.info("Tier 3 succeeded", tier="scraper", n_chunks=len(chunks))
             return chunks, self._tertiary.tier_name
@@ -160,5 +173,8 @@ class RetrievalManager:
         """Check if retrieved chunks meet the CRAG relevance threshold."""
         if not chunks:
             return False
+        # In-process local store uses keyword embeddings with lower scores.
+        if self._primary.tier_name == "local":
+            return True
         mean_score = sum(c.relevance_score for c in chunks) / len(chunks)
         return mean_score >= self._threshold

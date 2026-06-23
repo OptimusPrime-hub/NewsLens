@@ -107,8 +107,8 @@ async def retrieve_node(state: AgentState) -> dict:
         input_summary=f"Query: {payload.raw_query[:80]}",
         output_summary=f"{len(chunks)} chunks via {tier}",
         latency_ms=elapsed,
-        fallback_triggered=(tier != "pathway"),
-        fallback_tier={"pathway": 0, "bing": 2, "scraper": 3}.get(tier),
+        fallback_triggered=(tier not in ("pathway", "local")),
+        fallback_tier={"pathway": 0, "local": 0, "bing": 2, "scraper": 3}.get(tier),
         timestamp=datetime.now(tz=UTC),
     )
 

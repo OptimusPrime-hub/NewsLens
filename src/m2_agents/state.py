@@ -36,7 +36,7 @@ class AgentState(TypedDict):
 
     # ── Retrieval outputs ────────────────────────────────────────────────────
     retrieved_chunks: list[RetrievedChunk]
-    retrieval_tier: str  # "pathway" | "bing" | "scraper"
+    retrieval_tier: str  # "pathway" | "local" | "bing" | "scraper"
 
     # ── CRAG outputs ─────────────────────────────────────────────────────────
     crag_grades: list[CRAGGrade]

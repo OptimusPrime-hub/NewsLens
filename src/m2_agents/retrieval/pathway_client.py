@@ -18,6 +18,7 @@ from tenacity import (
 )
 
 from src.m2_agents.retrieval.base import BaseRetriever
+from src.m2_agents.retrieval.failure_simulation import raise_if_simulated
 from src.m2_agents.schemas import RetrievedChunk
 from src.shared.config import get_settings
 from src.shared.exceptions import PathwayRetrievalError
@@ -71,6 +72,8 @@ class PathwayRetriever(BaseRetriever):
         Raises:
             PathwayRetrievalError: If Pathway is unreachable after retries.
         """
+        raise_if_simulated("pathway", PathwayRetrievalError)
+
         payload = {
             "query": query,
             "k": top_k,
@@ -124,6 +127,15 @@ class PathwayRetriever(BaseRetriever):
         return " && ".join(conditions) if conditions else ""
 
     @staticmethod
+    def _parse_relevance_score(item: dict) -> float:
+        """Normalize Pathway score/distance fields into a 0-1 relevance score."""
+        if "score" in item:
+            return float(item["score"])
+        if "dist" in item:
+            return max(0.0, min(1.0, 1.0 - float(item["dist"])))
+        return 0.0
+
+    @staticmethod
     def _parse_results(raw: list[dict] | dict) -> list[RetrievedChunk]:
         """Convert Pathway JSON response into typed chunks."""
         # Pathway may return a list or a dict with a 'results' key
@@ -142,7 +154,7 @@ class PathwayRetriever(BaseRetriever):
                             datetime.now(tz=UTC).isoformat(),
                         ),
                     ),
-                    relevance_score=float(item.get("score", item.get("dist", 0.0))),
+                    relevance_score=PathwayRetriever._parse_relevance_score(item),
                     source_url=item.get("metadata", {}).get("url", ""),
                 )
                 chunks.append(chunk)
