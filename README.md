@@ -140,6 +140,7 @@ Every `AnalysisResult` carries a full `agent_trace: list[TraceEntry]` so the web
 | **LLM (M1 Intent)** | `openai` `gpt-4o-mini` — fast, structured JSON output for intent classification |
 | **LLM (M5 Narrative)** | `openai` `gpt-4o` — high-quality explanation and bias narrative generation |
 | **LLM Fallback (Secondary)** | `anthropic` `claude-3-5-haiku` — separate failure domain from OpenAI |
+| **LLM Fallback (Tertiary)** | `gemini` `gemini-1.5-flash` — Google Generative AI fallback layer |
 | **LLM Fallback (Local)** | `ollama` + `llama3.2:3b` — fully offline, no external API dependency |
 | **Embeddings (Primary)** | `openai` `text-embedding-3-small` — 1536-dim, strong semantic quality |
 | **Embeddings (Fallback)** | `sentence-transformers` `BAAI/bge-small-en-v1.5` — local, no API key required |
@@ -222,7 +223,8 @@ M1_CONFIDENCE_THRESHOLD=0.80            # Minimum confidence to accept intent pa
 
 # --- LLM Fallbacks ---
 ANTHROPIC_API_KEY=your_anthropic_key     # Secondary LLM provider
-OLLAMA_HOST=http://localhost:11434       # Local Ollama endpoint
+GEMINI_API_KEY=your_gemini_key           # Tertiary LLM provider
+OLLAMA_BASE_URL=http://localhost:11434   # Local Ollama endpoint
 LOCAL_LLM_MODEL=llama3.2:3b             # Offline LLM fallback model
 
 # --- Embeddings ---
@@ -439,7 +441,7 @@ news-agentic-rag/
 │   └── shared/
 │       ├── __init__.py
 │       ├── config.py                    # pydantic-settings Config model
-│       ├── llm_factory.py               # LLM provider factory (OpenAI / Anthropic / Ollama)
+│       ├── llm_factory.py               # LLM provider factory (OpenAI / Anthropic / Gemini / Ollama)
 │       ├── logging.py                   # loguru structured logger setup
 │       ├── exceptions.py                # Custom exception hierarchy
 │       ├── constants.py                 # Central system parameters and thresholds
@@ -507,7 +509,8 @@ M1 and M0 (background pipeline) are independent. M2 retrieval, M3, and M4 run se
 | CRAG relevance below threshold | `mean(relevance_scores) < 0.72` | Rewrite query (Tier-1) → Bing Search (Tier-2) → Playwright (Tier-3) |
 | OpenAI Embedding API down | `openai.APIError` | Switch to local `BAAI/bge-small-en-v1.5` via `sentence-transformers` |
 | OpenAI Chat API down | `openai.APIError` | Route to `Anthropic Claude 3.5 Haiku` |
-| Both OpenAI + Anthropic down | Chained exception | Local `llama3.2:3b` via Ollama; flagged in UI |
+| OpenAI + Anthropic down | Chained exception | Route to `Google Gemini 1.5 Flash` |
+| OpenAI, Anthropic + Gemini down | Chained exception | Local `llama3.2:3b` via Ollama; flagged in UI |
 | LLM JSON parse failure (M1) | `pydantic.ValidationError` | Regex extraction fallback; if fails → `CROSS_PUBLISHER_SUMMARY` default |
 | LangGraph max iterations exceeded | `iteration_count > MAX_ITER` | Return partial result with `INCOMPLETE` warning in agent trace |
 
