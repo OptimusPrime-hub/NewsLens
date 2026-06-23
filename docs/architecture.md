@@ -95,7 +95,32 @@ supervisor → retrieve → crag_evaluate → {bias_agent | timeline_agent | sum
 | Pathway DocumentStore | In-memory `document_store.py` dict |
 | `pw.io` streaming connectors | Polling scripts + JSON file watch |
 
+### Target Design Fallbacks & Future Setup Roadmap
+
+The original proposal designed several local fallback mechanisms that are not natively active in the current implementation. They are preserved here as target specifications for future roadmap alignment:
+
+#### 1. Target Local LLM Fallback (Ollama)
+The design specifies local fallback to Ollama when the primary Gemini API keys fail or are rate-limited.
+* **Target Models to Pull**:
+  * `ollama pull qwen2.5-coder:7b` (optimized for M1 structured intent classification)
+  * `ollama pull llama3.1:8b` (optimized for M5 narrative explanation)
+  * `ollama pull mistral:7b` (general-purpose fallback routing)
+* **Target Config Variables**:
+  * `OLLAMA_BASE_URL=http://localhost:11434`
+  * `LOCAL_LLM_MODEL=llama3.1:8b`
+
+#### 2. Target Local Embedding Fallback
+The design specifies a local sentence-transformer model to fallback from OpenAI embeddings for offline embedding operations.
+* **Target Model**: `sentence-transformers BAAI/bge-small-en-v1.5`
+* **Target Config Variables**:
+  * `LOCAL_EMBEDDING_MODEL=BAAI/bge-small-en-v1.5`
+
+#### 3. Target Playwright Scraper Fallback
+For Tier-3 scraping of Javascript-rendered sites, the design specifies using an asynchronous Playwright client (`scraper_client.py` using `playwright` instead of the current `httpx` + `BeautifulSoup`).
+* **Requirements**: Run `poetry run playwright install` to set up browser binaries.
+
 ---
+
 
 ## 1. Executive Summary
 

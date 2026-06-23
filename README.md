@@ -38,7 +38,7 @@ curl -X POST http://127.0.0.1:8000/api/analyze \
 
 | Doc | Contents |
 |-----|----------|
-| [docs/overview.md](docs/overview.md) | Product pitch, key features, design principles, challenge compliance |
+| [docs/overview.md](docs/overview.md) | Product pitch, key features, design principles, taxonomy, and core thesis |
 | [docs/modules.md](docs/modules.md) | M0–M5 breakdown, LangGraph topology, retrieval cascade |
 | [docs/data_contracts.md](docs/data_contracts.md) | Pydantic schemas, `retrieval_tier_used`, agent trace |
 | [docs/tech_stack.md](docs/tech_stack.md) | Languages, libraries, platform notes |
@@ -81,6 +81,36 @@ See [docs/deployment_guide.md](docs/deployment_guide.md) for all variables.
 
 ---
 
+## Deployment Architecture
+
+When deploying in production (e.g. using the Docker stack), the system runs as three orchestrated services:
+
+```text
+news-sync (polling connector) ──writes──▶ data/pathway_sources/*.json
+                                                 │
+                                                 ▼
+                                           pathway (VectorStoreServer :8765)
+                                                 │
+                                                 ▼
+                                           web (FastAPI Server :8000) ◀──POST /v1/retrieve── pathway
+```
+
+* **`news-sync`**: Polls news APIs and RSS feeds in the background and writes them to a JSON folder.
+* **`pathway`**: Serves the native Pathway `VectorStoreServer` watching the JSON files and serving queries on port `8765`.
+* **`web`**: Serves the FastAPI server (user interface and REST endpoints) on port `8000`, routing query retrieval requests to the Pathway service container.
+
+---
+
+## Video Demonstration
+
+Here is a working demonstration video of the NewsLens multi-agent news analysis system in action:
+
+![NewsLens Demo Video](docs/assets/images/demo_video.mp4)
+
+*(Judges: Replace the path above with your recorded MP4 walkthrough path when submitting).*
+
+---
+
 ## Testing
 
 ```bash
@@ -92,3 +122,4 @@ poetry run pytest tests/ -v
 ## Authors
 
 [Shreyansh Verma](https://github.com/Shreyansh-Verma007) — Inter IIT Tech Meet 13.0 | Pathway Problem Statement
+

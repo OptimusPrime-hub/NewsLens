@@ -1,50 +1,28 @@
 # Technology Stack
 
-Current implementation as of June 2026. For design-target vs implemented gaps, see [architecture.md](architecture.md) §11.
+This document defines the actual technology stack implemented in the NewsLens repository.
 
-## Core stack
-
-| Layer | Technology | Notes |
-|-------|------------|-------|
-| **Index** | Pathway VectorStoreServer | Linux/Docker via `run_pathway_pipeline.py` |
-| **Dev index** | In-process `IngestionPipeline` | Windows via `LocalRetriever` |
-| **Orchestration** | LangGraph ≥0.2 | `src/m2_agents/graph.py` |
-| **Primary LLM** | Gemini `gemini-1.5-flash` | M1, M2 CRAG, M3 framing, M5 narrative |
-| **LLM failover** | `GEMINI_API_KEY_FALLBACK` | LangChain `.with_fallbacks()` |
-| **M1 offline** | Regex heuristic | When Gemini unavailable |
-| **Embeddings** | Gemini `text-embedding-004` | M0 + Pathway server |
-| **Embedding fallback** | Keyword hash (384-dim) | When Gemini embed fails |
-| **Sentiment** | VADER (default) | `src/m3_bias/sentiment.py` |
-| **Sentiment optional** | RoBERTa via transformers | `use_fallback_only=False` |
-| **NER / entities** | spaCy `en_core_web_sm` + regex | Bias salience, timeline extraction |
-| **News primary** | NewsAPI.org + RSS | `newsapi_connector.py`, `rss_connector.py` |
-| **Search fallback** | Bing Search API v7 | Tier 2 |
-| **Scraper fallback** | httpx + BeautifulSoup | Google News RSS URL discovery |
-| **HTTP / retry** | httpx + tenacity | All external API clients |
-| **Validation** | Pydantic v2 | All module contracts |
-| **UI** | FastAPI + Jinja2 + vanilla JS | Chart.js for bias/timeline charts |
-| **Config** | pydantic-settings + `.env` | `src/shared/config.py` |
-| **Logging** | loguru | Structured agent/session logs |
-| **Testing** | pytest + pytest-asyncio | 34 tests (unit + contract) |
-
-## Platform notes
-
-| OS | Pathway | Primary retriever |
-|----|---------|-------------------|
-| Linux / macOS | Native (`poetry install`) | `PathwayRetriever` |
-| Windows | Docker only (challenge rule) | `LocalRetriever` for native dev |
-
-Pathway is excluded from Windows Poetry install: `pathway = { markers = "platform_system != 'Windows'" }` in `pyproject.toml`.
-
-## Prompt locations
-
-All shared LLM prompts live in `src/shared/prompts/`:
-
-- `crag.py` — CRAG relevance grading
-- `summary.py` — cross-publisher summary
-- `timeline.py` — timeline event preparation
-- `framing.py` — 5-frame narrative extraction
-- `explanation.py` — bias narrative explanation
-- `intent.py` — (reference; M1 uses `m1_intent/prompts.py`)
-
-M2-specific rewrite prompts: `src/m2_agents/prompts/rewrite.py`
+| Layer | Technology | Status / Role |
+|---|---|---|
+| **Streaming Runtime** | `pathway >=0.31.0` | Linux/Docker ingestion, real-time incremental vector index. |
+| **Agent Orchestration** | `langgraph >=0.2.0` | Stateful multi-agent graphs with conditional intent routing. |
+| **Primary LLM** | Google Gemini `gemini-1.5-flash` | Used for M1 intent classification, M2 CRAG, M3 framing, and M5 narrative explanation. |
+| **LLM Key Failover** | `GEMINI_API_KEY_FALLBACK` | Configured via LangChain's `.with_fallbacks()` for seamless failover when key quota fails. |
+| **M1 Offline Fallback** | Regex intent heuristics | In-memory query pattern matching when LLMs/APIs are completely down. |
+| **Embeddings (Primary)** | Google Gemini `text-embedding-004` | 768-dimensional dense vector embeddings. |
+| **Embeddings (Fallback)** | In-memory word hashing | 384-dimensional keyword vector generator (fully offline, zero ML dependencies). |
+| **Sentiment Analysis** | VADER (`vaderSentiment`) | Default, lightweight news sentiment scorer. |
+| **Sentiment Optional** | RoBERTa (`cardiffnlp/twitter-roberta-base-sentiment-latest`) | Deep learning CPU sentiment pipeline (enabled by setting `use_fallback_only=False` in `src/m3_bias/sentiment.py`). |
+| **NER / NLP** | spaCy `en_core_web_sm` | Used in M3 for entity salience naming. Falls back to regex-based capitalized word frequencies if model is missing. |
+| **News Source (Primary)** | NewsAPI.org & RSS Feeds | Polled via connectors to feed Pathway ingestion. |
+| **Web Search Fallback** | Bing Search API v7 | Tier-2 retrieval fallback client. |
+| **Scraper Fallback** | HTTPX + BeautifulSoup | Tier-3 fallback. Discovers URLs via Google News RSS search, decodes parameters via batch-execute, and chunks HTML paragraphs. |
+| **HTTP Client** | `httpx` | Async client for all external network requests. |
+| **Retry Logic** | `tenacity` | Exponential backoff for external news APIs, search APIs, and database requests. |
+| **Data Validation** | Pydantic v2 | Strictly typed contracts across all 11 schemas. |
+| **UI Framework** | FastAPI + Jinja2 | Async server rendering HTML templates and exposing analysis endpoints. |
+| **Frontend** | HTML5 + Vanilla CSS + Vanilla JS | Responsive UI, custom CSS animations, tab switcher, and results cards. |
+| **Charts** | `Chart.js` (CDN) | Client-side visualizers for sentiment heatmap and framing radar charts. |
+| **Logging** | `loguru` | Captures structured trace nodes, latencies, and execution errors. |
+| **Configuration** | `pydantic-settings` + `.env` | Type-safe settings module loaded from environment and `.env`. |
+| **Testing** | `pytest` + `pytest-asyncio` | Full unit, integration, and schema verification suite. |

@@ -1,273 +1,368 @@
 # NewsLens — Deployment & Operations Guide
 
-Inter IIT Tech Meet 13.0 | Pathway Agentic RAG Problem Statement
-
-This guide is the authoritative reference for installing, configuring, and running NewsLens locally or with Docker.
+This guide is the authoritative reference for installing, configuring, and running NewsLens.
 
 ---
 
-## 1. System Requirements
+## Getting Started
 
-| Component | Requirement |
-|-----------|-------------|
-| Python | 3.12+ (tested on 3.14) |
-| Package manager | [Poetry](https://python-poetry.org/) |
-| Docker | Required on **Windows** to run Pathway VectorStore (challenge rule) |
-| OS | Windows (dev + LocalRetriever) · Linux/macOS (native Pathway) |
+### Prerequisites
+- Python 3.12+ (tested on 3.14)
+- Poetry
+- Google Gemini API key (aistudio.google.com)
+- NewsAPI.org API key (optional, for live news)
+- Bing Search API v7 key (optional, for Tier-2 retrieval fallback)
 
-Optional API keys (improve live data and fallback tiers):
+### Installation
 
-- `GEMINI_API_KEY` — primary LLM + embeddings
-- `GEMINI_API_KEY_FALLBACK` — secondary Gemini key (auto-failover)
-- `NEWSAPI_KEY` — live article polling
-- `BING_SEARCH_API_KEY` — Tier-2 retrieval fallback
-
----
-
-## 2. Installation
-
-```powershell
-# Windows (recommended)
+#### Step 1 — Clone the repository
+```bash
 git clone https://github.com/Shreyansh-Verma007/newslens.git
 cd newslens
-.\scripts\install.ps1
 ```
 
+#### Step 2 — Install dependencies
 ```bash
-# Linux / macOS
-git clone https://github.com/Shreyansh-Verma007/newslens.git
-cd newslens
-bash scripts/install.sh
 poetry install
 ```
 
-> **Windows note:** Pathway is excluded from the Windows Poetry install (`platform_system != 'Windows'`). Use Docker for Pathway, or run with `LocalRetriever` + demo seed data for development.
+#### Step 3 — Download the spaCy NER model
+```bash
+poetry run python -m spacy download en_core_web_sm
+```
 
----
-
-## 3. Configuration
-
-Copy the template and fill in secrets:
-
+#### Step 4 — Configure environment
 ```bash
 cp .env.example .env
+# Open .env and fill in: GEMINI_API_KEY (required) and optional NEWSAPI_KEY
 ```
 
-### Required for full LLM quality
+#### Step 5 — Start the Pathway ingestion pipeline (Terminal 1 — Linux/macOS/Docker)
+```bash
+poetry run python scripts/run_pathway_pipeline.py
+```
+*(On Windows, native Pathway is not supported, so the pipeline runs in-process or via Docker)*
 
-| Variable | Description |
-|----------|-------------|
-| `GEMINI_API_KEY` | Primary Google Gemini key |
-| `GEMINI_API_KEY_FALLBACK` | Secondary key — used automatically when primary fails |
+#### Step 6 — Launch the web server (Terminal 2)
+```powershell
+# Windows (PowerShell) — recommended
+.\scripts\run_website.ps1
+```
+```cmd
+# Windows (CMD)
+scripts\run_website.bat
+```
+```bash
+# Linux / macOS
+bash scripts/run_website.sh
+```
+```bash
+# Or run directly (any platform)
+poetry run uvicorn src.m5_ui.api.server:app --reload --port 8000
+```
+Open **http://localhost:8000** in your browser.
 
-### Pathway VectorStore
+---
+
+## Environment Variables
+
+Create a `.env` file in the project root (see `.env.example` for a template).
 
 | Variable | Default | Description |
-|----------|---------|-------------|
-| `PATHWAY_HOST` | `127.0.0.1` | Pathway server host (`pathway` inside Docker Compose) |
-| `PATHWAY_PORT` | `8765` | Pathway VectorStore REST port |
-| `PATHWAY_SOURCE_GLOB` | `data/pathway_sources/*.json` | JSON articles watched by Pathway |
-| `PATHWAY_REFRESH_INTERVAL_MS` | `30000` | News sync poll interval |
-| `NEWS_SYNC_QUERY` | `world news top stories` | Default NewsAPI query |
-
-### Agent tuning
-
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `GEMINI_CHAT_MODEL` | `gemini-1.5-flash` | Chat model for M1/M2/M3/M5 |
-| `GEMINI_EMBEDDING_MODEL` | `models/text-embedding-004` | Embedding model for M0/Pathway |
-| `CRAG_RELEVANCE_THRESHOLD` | `0.72` | Min mean relevance before escalating retrieval |
-| `M1_CONFIDENCE_THRESHOLD` | `0.80` | Below this → route to `CROSS_PUBLISHER_SUMMARY` |
-| `RETRIEVAL_TOP_K` | `15` | Chunks requested per retrieval call |
-| `SEED_DEMO_DATA` | `true` | Auto-seed 5 trade articles on server startup (dev) |
-| `SIMULATE_RETRIEVAL_FAILURES` | *(empty)* | Comma list: `pathway,bing,scraper` for resilience demo |
-
-**Never commit `.env`** — it is listed in `.gitignore`.
+|---|---|---|
+| `GEMINI_API_KEY` | *(empty)* | Primary Google Gemini API key. |
+| `GEMINI_API_KEY_FALLBACK` | *(empty)* | Fallback Gemini API key used automatically when primary fails. |
+| `NEWSAPI_KEY` | *(empty)* | NewsAPI.org API key for fetching live stories. |
+| `BING_SEARCH_API_KEY` | *(empty)* | Bing Search API v7 key for Tier-2 web search fallback. |
+| `PATHWAY_HOST` | `127.0.0.1` | Pathway VectorStore host address. |
+| `PATHWAY_PORT` | `8765` | Pathway VectorStore port. |
+| `PATHWAY_SOURCE_GLOB` | `data/pathway_sources/*.json` | File path glob pattern for Pathway to monitor. |
+| `PATHWAY_REFRESH_INTERVAL_MS` | `30000` | NewsAPI polling interval in milliseconds. |
+| `NEWS_SYNC_QUERY` | `world news top stories` | Search query for NewsAPI live sync. |
+| `GEMINI_CHAT_MODEL` | `gemini-1.5-flash` | Gemini model name for intent translation and explanation. |
+| `GEMINI_EMBEDDING_MODEL` | `models/text-embedding-004` | Gemini model for dense vector embeddings. |
+| `CRAG_RELEVANCE_THRESHOLD` | `0.72` | Minimum relevance score required to accept chunks before triggering fallback. |
+| `M1_CONFIDENCE_THRESHOLD` | `0.80` | Minimum intent confidence required; below this, defaults to cross-publisher summary. |
+| `RETRIEVAL_TOP_K` | `15` | Number of chunks requested per query. |
+| `SEED_DEMO_DATA` | `false` | Set to `true` to auto-seed demo trade articles on server start. |
+| `SIMULATE_RETRIEVAL_FAILURES` | *(empty)* | Comma-separated list (e.g. `pathway,bing`) to force fallbacks for testing. |
 
 ---
 
-## 4. Running Locally (Windows — fastest path)
+## Usage
 
-One command seeds demo articles and starts the UI:
-
-```powershell
-.\scripts\run_local.ps1
-```
-
-Open **http://127.0.0.1:8000**
-
-### What happens under the hood
-
-1. `scripts/seed_demo_data.py` loads 5 US–China trade articles into the in-process store **and** `data/pathway_sources/`
-2. Uvicorn starts FastAPI on port 8000
-3. `RetrievalManager` uses **`LocalRetriever`** on Windows (Pathway unavailable natively)
-4. M1/M2/M3 agents run via Gemini (or regex/VADER offline fallbacks if keys missing)
-
-### Manual steps (equivalent)
-
-```powershell
-poetry run python scripts/seed_demo_data.py
-$env:SEED_DEMO_DATA = "true"
-poetry run uvicorn src.m5_ui.api.server:app --reload --host 127.0.0.1 --port 8000
-```
-
-### Suggested test queries
-
-| Query | Expected intent |
-|-------|-----------------|
-| `Summarize US-China trade talks across publishers` | `CROSS_PUBLISHER_SUMMARY` |
-| `How did Reuters vs Fox News cover US-China trade?` | `BIAS_DETECTION` |
-| `Timeline of the latest US-China trade dispute` | `TIMELINE` |
-
-### API smoke test
-
-```powershell
-Invoke-RestMethod http://127.0.0.1:8000/api/health
-
-Invoke-RestMethod -Uri http://127.0.0.1:8000/api/analyze `
-  -Method POST -ContentType "application/json" `
-  -Body '{"query":"Summarize US-China trade talks"}'
-```
-
----
-
-## 5. Docker Deployment (full Pathway stack)
-
-**Required on Windows** for challenge-compliant Pathway VectorStore serving.
-
+### 1. Start the pipeline
 ```bash
-cp .env.example .env
-# Edit .env — set GEMINI_API_KEY and optional NEWSAPI_KEY / BING_SEARCH_API_KEY
-
-docker compose up --build
-```
-
-Open **http://localhost:8000**
-
-### Services
-
-| Service | Port | Command | Role |
-|---------|------|---------|------|
-| `pathway` | 8765 | `scripts/run_pathway_pipeline.py` | Pathway VectorStoreServer over JSON articles |
-| `news-sync` | — | `scripts/sync_news_sources.py` | Polls NewsAPI + RSS → writes JSON files |
-| `web` | 8000 | `uvicorn src.m5_ui.api.server:app` | FastAPI UI + REST API |
-
-### Service dependency graph
-
-```
-news-sync ──writes──▶ data/pathway_sources/*.json
-                              │
-                              ▼
-                        pathway :8765
-                              │
-                              ▼
-                          web :8000  ──POST /v1/retrieve──▶ pathway
-```
-
-Inside Docker Compose, `web` sets `PATHWAY_HOST=pathway` so M2's `PathwayRetriever` hits the container network.
-
-### Build image only
-
-```bash
-docker build -t newslens:latest .
-```
-
----
-
-## 6. Native Linux (no Docker)
-
-Three terminals:
-
-```bash
-# Terminal 1 — seed demo articles (optional, for offline dev)
-poetry run python scripts/seed_demo_data.py
-
-# Terminal 2 — Pathway VectorStore server
+# Terminal 1 — start the Pathway ingestion pipeline (runs continuously in background)
 poetry run python scripts/run_pathway_pipeline.py
 
-# Terminal 3 — optional live news sync (writes JSON for Pathway to watch)
-poetry run python scripts/sync_news_sources.py
-
-# Terminal 4 — web UI
+# Terminal 2 — start the FastAPI web server
 poetry run uvicorn src.m5_ui.api.server:app --reload --port 8000
 ```
 
----
+### 2. Open the web UI
+Navigate to **http://localhost:8000** in your browser.
 
-## 7. Retrieval Resilience Demo
+| Page | URL | Description |
+|---|---|---|
+| **Query input** | http://localhost:8000/ | Enter your natural-language news query |
+| **Results** | http://localhost:8000/results | Bias heatmap, timeline, summary and agent trace |
+| **About** | http://localhost:8000/about | Methodology and system explanation |
 
-Simulate callback failures to prove autonomous fallback (challenge Level-2 requirement):
+### 3. Example queries
 
-```powershell
-$env:SIMULATE_RETRIEVAL_FAILURES = "pathway"
-poetry run uvicorn src.m5_ui.api.server:app --port 8000
-```
+- *"How did Reuters and Fox News cover the US-China trade talks?"* (Detected: `BIAS_DETECTION`)
+- *"Timeline of the Silicon Valley Bank collapse"* (Detected: `TIMELINE`)
+- *"What happened with Gaza ceasefire negotiations last week?"* (Detected: `CROSS_PUBLISHER_SUMMARY`)
 
-Cascade order:
-
-| Tier | Backend | Trigger |
-|------|---------|---------|
-| 0 | Pathway VectorStore **or** LocalRetriever (Windows) | Primary |
-| 1 | Query rewrite + Tier-0 retry | Mean relevance below `CRAG_RELEVANCE_THRESHOLD` |
-| 2 | Bing Search API v7 | Tier 0/1 insufficient |
-| 3 | Google News RSS + httpx/BeautifulSoup scraper | All above fail |
-
-Check `metadata.retrieval_tier_used` in the API response (`pathway`, `local`, `bing`, or `scraper`).
-
----
-
-## 8. REST API Reference
+### 4. REST API
 
 | Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/` | GET | Search landing page |
-| `/results` | GET | Results page (bias / timeline / summary tabs) |
-| `/api/health` | GET | Liveness probe |
-| `/api/analyze` | POST | Full M1→M2 pipeline, returns `AnalysisResult` JSON |
-| `/api/analyze/stream` | POST | SSE progress stream + final result |
-| `/api/docs` | GET | OpenAPI interactive docs |
-
-**Request body** (`POST /api/analyze`):
-
-```json
-{ "query": "How did Reuters and Fox News cover US-China trade?" }
-```
-
----
-
-## 9. Testing
+|---|---|---|
+| `/api/analyze` | `POST` | Run full pipeline, return `AnalysisResult` JSON |
+| `/api/analyze/stream` | `POST` | SSE stream — emits live progress events then final result |
+| `/api/health` | `GET` | Liveness probe |
+| `/api/docs` | `GET` | OpenAPI interactive docs |
 
 ```bash
-poetry run pytest tests/ -v
+# Synchronous — waits for full result
+curl -X POST http://localhost:8000/api/analyze \
+  -H "Content-Type: application/json" \
+  -d '{"query": "How did Reuters and Fox News cover the US-China trade talks?"}'
+
+# Streaming (SSE)
+curl -X POST http://localhost:8000/api/analyze/stream \
+  -H "Content-Type: application/json" \
+  -d '{"query": "Timeline of Gaza ceasefire negotiations"}'
 ```
 
-Current suites:
+---
 
-| Path | Count | Scope |
-|------|-------|-------|
-| `tests/unit/` | 20+ | Retrieval cascade, M1 classifier, M3 bias, M4 timeline |
-| `tests/contract/` | 5 | Pydantic schema round-trips (M0–M4) |
-| `tests/test_m0.py`, `test_m1.py` | 6 | Module smoke tests |
+## Testing
+
+### Test Runner
+```bash
+# Full suite
+poetry run pytest tests/ -v
+
+# Unit tests only
+poetry run pytest tests/unit/ -v
+
+# Integration tests only
+poetry run pytest tests/integration/ -v
+```
+
+### Test Suites
+
+| Suite | Scope | Requirements |
+|---|---|---|
+| `tests/unit/` | Module isolation — each engine tested independently with fixture data | No network, no LLM |
+| `tests/integration/` | Full pipeline flow with mocked/local databases | No network, no LLM |
+
+### What the E2E Smoke Tests Verify
+
+| Test Class | What It Verifies |
+|---|---|
+| **`IntentClassification`** | Each of 3 intent types classified correctly for canonical query patterns; fallback fires below threshold |
+| **`RetrievalFallbackCascade`** | Each of 4 retrieval tiers triggers correctly when the previous tier returns below-threshold relevance |
+| **`CRAGGrading`** | Retrieved chunks are graded correctly; `IRRELEVANT` chunks are filtered before generation |
+| **`BiasScoreConsistency`** | Publisher bias scores are bounded $[-1, 1]$; pairwise divergence matrix is symmetric |
+| **`TimelineOrdering`** | Events sorted ascending by date; multi-source events flagged `HIGH_CONFIDENCE`; temporal gaps detected |
+| **`AgentTraceContract`** | Full trace emitted with node names, latencies, and fallback tier for every pipeline run |
+| **`AnalysisResultContract`** | All required fields present; conditional fields populated correctly per intent class |
 
 ---
 
-## 10. Troubleshooting
 
-| Symptom | Fix |
-|---------|-----|
-| Port 8000 already in use | `Get-NetTCPConnection -LocalPort 8000` → stop owning process |
-| `retrieval_tier_used: scraper` on Windows with demo data | Restart server after `seed_demo_data.py`; ensure `SEED_DEMO_DATA=true` |
-| Offline heuristic summaries | Set `GEMINI_API_KEY` in `.env` and restart |
-| Pathway healthcheck fails in Docker | Wait ~60s for first embed; check `GEMINI_API_KEY` and JSON files in `data/pathway_sources/` |
-| `This is not the real Pathway package` on Windows | Expected — use Docker for real Pathway; dev uses `LocalRetriever` |
+## Future Target Fallbacks (Ollama & Playwright Roadmap)
+
+If you are developing or testing planned future local fallbacks (not natively integrated into the current server code), you can refer to the target design specs below:
+
+### 1. Target Ollama Setup
+- Install Ollama.
+- Pull the target models:
+  ```bash
+  # Best for structured/code tasks (M1 intent parsing)
+  ollama pull qwen2.5-coder:7b
+  
+  # Best for general reasoning (M5 narrative explanation)
+  ollama pull llama3.1:8b
+  
+  # Balanced speed/quality fallback
+  ollama pull mistral:7b
+  ```
+- Verify Ollama is running: open `http://localhost:11434` in your browser.
+- Planned `.env` variables:
+  ```ini
+  OLLAMA_BASE_URL=http://localhost:11434
+  LOCAL_LLM_MODEL=llama3.1:8b
+  ```
+
+### 2. Target Playwright Scraper
+- Designed as a fallback for dynamic Javascript-rendered pages.
+- Requires downloading Playwright browsers: `poetry run playwright install`.
+
+### 3. Target Local Embeddings
+- Designed to load `BAAI/bge-small-en-v1.5` locally when the Gemini API is down.
+- Planned `.env` variables:
+  ```ini
+  LOCAL_EMBEDDING_MODEL=BAAI/bge-small-en-v1.5
+  ```
 
 ---
 
-## 11. Submission Checklist (Judges)
+## Production Deployment (Going Live)
 
-- [ ] Clone repo and `cp .env.example .env`
-- [ ] Add `GEMINI_API_KEY` (and optional `NEWSAPI_KEY`, `BING_SEARCH_API_KEY`)
-- [ ] **Windows:** `docker compose up --build` **or** `.\scripts\run_local.ps1` for quick demo
-- [ ] Open http://localhost:8000 and run a bias + summary query
-- [ ] Verify agent trace panel shows retrieval tier and CRAG steps
-- [ ] Demo `SIMULATE_RETRIEVAL_FAILURES=pathway` fallback behavior
+This section guides you through going live with the NewsLens Agentic RAG application.
+
+### 1. Deployment Architecture
+
+For live production serving, the application runs inside orchestrated Docker containers. The architecture consists of three core components:
+
+```text
+news-sync (polling connector) ──writes──▶ data/pathway_sources/*.json
+                                                 │
+                                                 ▼
+                                           pathway (VectorStoreServer :8765)
+                                                 │
+                                                 ▼
+                                           web (FastAPI Server :8000) ◀──POST /v1/retrieve── pathway
+```
+
+* **`news-sync`**: Continually polls NewsAPI.org and RSS outlets in the background, writing normalized articles to JSON files.
+* **`pathway`**: Hosts Pathway's VectorStoreServer which watches those JSON files and serves embedded document chunks on port `8765`.
+* **`web`**: Hosts the FastAPI server (running the LangGraph RAG pipeline, the web UI, and the REST endpoints) on port `8000`.
+
+### 2. Going Live with Docker Compose (Recommended Setup)
+
+To launch the orchestrated service suite on any production server:
+
+```bash
+# 1. Clone your production-ready repository
+git clone https://github.com/Shreyansh-Verma007/newslens.git
+cd newslens
+
+# 2. Configure environment keys
+cp .env.example .env
+nano .env # Add your production GEMINI_API_KEY and NEWSAPI_KEY
+
+# 3. Build and launch the container stack in the background
+docker compose up -d --build
+```
+Verify the health endpoint: `curl http://localhost:8000/api/health`.
+
+---
+
+## Serving via Pathway Native (`serve_callable` API)
+
+If you wish to migrate from an external FastAPI server to Pathway's built-in **`serve_callable`** API (routing and hosting your Agentic RAG pipeline natively inside the Pathway runtime), follow the migration recipe below:
+
+### Migration Recipe
+
+Create a serving entry point `run_native_serving.py` in your repository:
+
+```python
+"""
+Pathway Native Serving Entrypoint.
+Exposes the LangGraph multi-agent RAG pipeline directly via Pathway's serve_callable API.
+"""
+
+from __future__ import annotations
+import pathway as pw
+from src.m2_agents.graph import compile_agent_graph
+from src.m1_intent.classifier import IntentClassifier
+
+# 1. Initialize the intent translator and agent graph
+intent_classifier = IntentClassifier()
+graph = compile_agent_graph()
+
+# 2. Define the serving function
+def native_rag_endpoint(query: str, top_k: int = 15) -> dict:
+    """
+    Accepts raw query inputs, translates intent, runs retrieval-agent cascade,
+    and returns the final serializable AnalysisResult dictionary.
+    """
+    try:
+        # Step A: Run intent classification (M1)
+        intent_payload = intent_classifier.classify(query)
+        
+        # Step B: Invoke the stateful LangGraph pipeline (M2-M4)
+        state_input = {
+            "intent_payload": intent_payload,
+            "retrieved_chunks": [],
+            "crag_grades": [],
+            "analysis_result": None,
+            "agent_trace": [],
+            "iteration_count": 0,
+            "error_log": []
+        }
+        output = graph.invoke(state_input)
+        
+        # Step C: Return the structured result dictionary
+        result = output.get("analysis_result")
+        if result:
+            return result.model_dump(mode="json")
+        return {"error": "Failed to compile analysis result"}
+        
+    except Exception as exc:
+        return {"error": f"Pipeline failure: {str(exc)}"}
+
+# 3. Start Pathway's native server (serves REST endpoint on port 8080)
+if __name__ == "__main__":
+    print("Launching native Pathway server on port 8080...")
+    pw.serve_callable(
+        host="0.0.0.0",
+        port=8080,
+        function=native_rag_endpoint
+    )
+```
+
+Run this script to expose a native REST endpoint directly served by Pathway:
+```bash
+poetry run python run_native_serving.py
+```
+This is fully compliant with the Pathway native deployment guidelines and operates as a unified, high-performance RAG pipeline on a single port.
+
+---
+
+## Vercel-like Continuous Deployment (CI/CD)
+
+To get a Vercel-like experience where any git commit automatically builds and deploys your changes to your live Docker container stack, we use **GitHub Actions**.
+
+Whenever you push to the `main` or `master` branch, the workflow defined in `.github/workflows/deploy.yml` will SSH into your server, run `git pull`, and execute a zero-downtime rebuild using `docker compose up --build`.
+
+### Setup Instructions
+
+#### Step 1: Initial Server Setup
+1. Log into your production server via SSH.
+2. Clone your repository into a directory of your choice (e.g. `/home/ubuntu/newslens`):
+   ```bash
+   git clone https://github.com/Shreyansh-Verma007/newslens.git /home/ubuntu/newslens
+   cd /home/ubuntu/newslens
+   ```
+3. Copy and configure your production `.env` file (the CI/CD workflow will pull updates but reuse this local file):
+   ```bash
+   cp .env.example .env
+   nano .env # Add your production GEMINI_API_KEY, NewsAPI key, etc.
+   ```
+
+#### Step 2: Configure GitHub Repository Secrets
+To allow GitHub Actions to log into your server securely, go to your GitHub repository and navigate to **Settings > Secrets and variables > Actions**. Add the following repository secrets:
+
+* **`SSH_HOST`**: The public IP address or domain name of your server (e.g. `192.0.2.1` or `newslens.example.com`).
+* **`SSH_USERNAME`**: The SSH login user (e.g. `ubuntu` or `root`).
+* **`SSH_KEY`**: The contents of your private SSH key used to log into the server (typically found in `~/.ssh/id_rsa` or `~/.ssh/id_ed25519` on your local machine). Make sure your server's `~/.ssh/authorized_keys` includes the corresponding public key.
+* **`SSH_PORT`**: *(Optional)* The SSH port if not the default `22`.
+* **`DEPLOY_PATH`**: The absolute path on the server where you cloned the repo in Step 1 (e.g. `/home/ubuntu/newslens`).
+
+#### Step 3: Trigger the First Deployment
+Now, commit your changes and push to GitHub:
+```bash
+git add .
+git commit -m "Configure continuous deployment pipeline"
+git push origin main
+```
+Go to the **Actions** tab in your GitHub repository interface. You will see your deployment job running. Once complete, your changes will be built and running live on the server!
+
+
+
