@@ -25,7 +25,8 @@ Copy `.env.example` to `.env` and fill in values for external resources:
 
 ### LLM Fallbacks & Local Providers
 * `ANTHROPIC_API_KEY`: API key for Anthropic (Tier-2 LLM provider fallback).
-* `OLLAMA_HOST`: Port/host endpoint for a local Ollama instance (defaults to `http://localhost:11434`).
+* `GEMINI_API_KEY`: API key for Google Gemini (Tier-3 LLM provider fallback).
+* `OLLAMA_BASE_URL`: Port/host endpoint for a local Ollama instance (defaults to `http://localhost:11434`).
 * `LOCAL_LLM_MODEL`: Model name for Ollama fallback (defaults to `llama3.2:3b`).
 
 ### Pathway VectorStore

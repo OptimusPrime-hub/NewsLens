@@ -18,6 +18,7 @@ langgraph = ">=0.2.0"
 langchain-core = ">=0.3.0"
 langchain-openai = ">=0.2.0"
 langchain-anthropic = ">=0.2.0"
+langchain-google-genai = ">=2.0.0"
 
 # ── LLM Providers ───────────────────────────────────────────────────────────
 openai = ">=1.40.0"
@@ -116,7 +117,7 @@ plugins = ["pydantic.mypy"]
 
 # ── Coverage ──────────────────────────────────────────────────────────────────
 [tool.coverage.run]
-source = ["core", "schemas"]
+source = ["src", "schemas"]
 omit = ["tests/*", "scripts/*"]
 
 [tool.coverage.report]
