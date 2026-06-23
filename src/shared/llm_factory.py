@@ -176,7 +176,10 @@ def _build_ollama(model: str, temperature: float, purpose: str = "m1") -> BaseCh
 
     logger.info("Selected local Ollama model", selected_model=selected_model, purpose=purpose)
 
-    from langchain_community.chat_models import ChatOllama
+    try:
+        from langchain_ollama import ChatOllama
+    except ImportError:
+        from langchain_community.chat_models import ChatOllama  # type: ignore[no-redef]
 
     return ChatOllama(
         model=selected_model,

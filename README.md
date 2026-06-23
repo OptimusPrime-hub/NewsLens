@@ -145,7 +145,6 @@ Every `AnalysisResult` carries a full `agent_trace: list[TraceEntry]` so the web
 | **Sentiment Fallback** | `vaderSentiment` — fast, rule-based, works offline |
 | **NER / NLP** | `spacy` `en_core_web_trf` >=3.7 — DATE/TIME entity extraction for timelines |
 | **News Source (Primary)** | `newsapi-python` (NewsAPI.ai) — 80k+ sources, real-time structured JSON |
-| **News Source (Secondary)** | `feedparser` (RSS polling) — 10+ major outlet feeds |
 | **Web Search Fallback** | Bing Search API v7 — structured web results, Tier-2 fallback |
 | **Scraper Fallback** | `playwright` (async) — JS-rendered page support, Tier-3 fallback |
 | **HTTP Client** | `httpx` — async-first, retry support via `tenacity` |
@@ -172,60 +171,73 @@ Every `AnalysisResult` carries a full `agent_trace: list[TraceEntry]` so the web
 
 ### Installation
 
-1. **Clone the repository**:
-   ```bash
-   git clone https://github.com/Shreyansh-Verma007/newslens.git
-   cd newslens
-   ```
+**Step 1 — Clone the repository**
 
-2. **Install dependencies**:
-   ```bash
-   poetry install
-   ```
+```bash
+git clone https://github.com/Shreyansh-Verma007/newslens.git
+cd newslens
+```
 
-3. **Download the spaCy model**:
-   ```bash
-   poetry run python -m spacy download en_core_web_trf
-   ```
+**Step 2 — Install dependencies**
 
-### Ollama Setup Guide (Local Offline LLM)
+```bash
+poetry install
+```
 
-To set up local offline fallback capabilities:
-1. Download and install Ollama from [ollama.com](https://ollama.com/).
-2. Run the Ollama application on your local machine.
-3. Download the default model (`llama3.2:3b`) using your terminal:
-   ```bash
-   ollama pull llama3.2:3b
-   ```
-4. Verify the Ollama server is running by opening `http://localhost:11434` in your browser.
-5. In your `.env` file, ensure `OLLAMA_BASE_URL=http://localhost:11434` and `LOCAL_LLM_MODEL=llama3.2:3b` are configured.
+**Step 3 — Download the spaCy NER model**
 
-### Running the Platform
+```bash
+poetry run python -m spacy download en_core_web_trf
+```
 
-1. **Start the Pathway ingestion pipeline** (Terminal 1):
-   ```bash
-   poetry run python scripts/run_pathway_pipeline.py
-   ```
+**Step 4 — Set up Ollama (local LLM fallback)**
 
-2. **Launch the FastAPI web server** (Terminal 2):
-   - On Windows (PowerShell):
-     ```powershell
-     scripts/run_website.ps1
-     ```
-   - On Windows (CMD):
-     ```cmd
-     scripts/run_website.bat
-     ```
-   - On Linux/macOS:
-     ```bash
-     bash scripts/run_website.sh
-     ```
-   - Or run the uvicorn command directly:
-     ```bash
-     poetry run uvicorn src.m5_ui.api.server:app --reload --port 8000
-     ```
+Install [Ollama](https://ollama.com/) then pull the recommended models:
 
-Open `http://localhost:8000` in your web browser.
+```bash
+# Best for structured/code tasks (M1 intent parsing)
+ollama pull qwen2.5-coder:7b
+
+# Best for general reasoning (M5 narrative explanation)
+ollama pull llama3.1:8b
+
+# Balanced speed/quality fallback
+ollama pull mistral:7b
+```
+
+The factory auto-selects the best available model at runtime — no extra config needed.
+Verify Ollama is running: open `http://localhost:11434` in your browser.
+
+**Step 5 — Configure environment**
+
+```bash
+cp .env.example .env
+# Open .env and fill in: NEWSAPI_KEY and GEMINI_API_KEY (both required)
+```
+
+**Step 6 — Start the Pathway ingestion pipeline** *(Terminal 1)*
+
+```bash
+poetry run python scripts/run_pathway_pipeline.py
+```
+
+**Step 7 — Launch the web server** *(Terminal 2)*
+
+```powershell
+# Windows (PowerShell) — recommended
+.\scripts\run_website.ps1
+
+# Windows (CMD)
+scripts\run_website.bat
+
+# Linux / macOS
+bash scripts/run_website.sh
+
+# Or run directly (any platform)
+poetry run uvicorn src.m5_ui.api.server:app --reload --port 8000
+```
+
+Open **http://localhost:8000** in your browser.
 
 ---
 
@@ -249,7 +261,7 @@ GEMINI_API_KEY=your_gemini_key           # Google Gemini API Key
 
 # --- LLM Fallback (Local) ---
 OLLAMA_BASE_URL=http://localhost:11434   # Local Ollama endpoint
-LOCAL_LLM_MODEL=llama3.2:3b             # Offline local fallback model
+LOCAL_LLM_MODEL=llama3.1:8b             # Offline local fallback model (auto-selected from installed)
 
 # --- Embeddings ---
 EMBEDDING_MODEL=text-embedding-3-small   # OpenAI embedding model
