@@ -33,6 +33,7 @@ loguru = ">=0.7.2"
 python-dateutil = ">=2.9.0"
 ujson = ">=5.10.0"
 cachetools = ">=5.4.0"
+tavily-python = ">=0.3.0"
 
 [tool.poetry.group.dev.dependencies]
 pytest = ">=8.3.0"

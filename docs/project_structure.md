@@ -49,8 +49,8 @@ news-agentic-rag/
 │   │   ├── retrieval/
 │   │   │   ├── manager.py               # RetrievalManager with 4-tier fallback cascade
 │   │   │   ├── pathway_client.py        # Pathway VectorStore client
-│   │   │   ├── bing_client.py           # Bing Search API v7 client (Tier-2)
-│   │   │   └── scraper_client.py        # Playwright scraper client (Tier-3)
+│   │   │   ├── tavily_client.py         # Tavily AI Search client (Tier-2 fallback)
+│   │   │   └── scraper_client.py        # HTTPX + BeautifulSoup scraper client (Tier-3)
 │   │   └── crag/
 │   │       ├── evaluator.py             # CRAG chunk grader (RELEVANT/AMBIGUOUS/IRRELEVVRANT)
 │   │       ├── rewriter.py              # LLM-based query rewriter for Tier-1 retry
@@ -116,9 +116,15 @@ news-agentic-rag/
 │   ├── run_website.sh                   # Starts M5 FastAPI server via uvicorn
 │   └── seed_test_data.py                # Seeds Pathway store with fixture articles
 ├── docs/
-│   ├── architecture.md                  # Full architecture specification (this document)
+│   ├── architecture.md                  # Full architecture specification
 │   ├── api_reference.md                 # REST API reference for /api/analyze
-│   └── deployment_guide.md             # Docker / bare-metal deployment guide
+│   ├── data_contracts.md                # Pydantic v2 schema contracts
+│   ├── deployment_guide.md              # Docker / Render / production deployment guide
+│   ├── modules.md                       # M0–M5 module table
+│   ├── overview.md                      # Project overview and key features
+│   ├── performance.md                   # End-to-end latency and resilience table
+│   ├── project_structure.md             # This file — directory tree
+│   └── tech_stack.md                    # Technology stack with status notes
 └── tests/
     ├── __init__.py
     ├── unit/                            # Module-level isolation tests (no network, no LLM)

@@ -73,7 +73,7 @@ Create a `.env` file in the project root (see `.env.example` for a template).
 | `GEMINI_API_KEY` | *(empty)* | Primary Google Gemini API key. |
 | `GEMINI_API_KEY_FALLBACK` | *(empty)* | Fallback Gemini API key used automatically when primary fails. |
 | `NEWSAPI_KEY` | *(empty)* | NewsAPI.org API key for fetching live stories. |
-| `BING_SEARCH_API_KEY` | *(empty)* | Bing Search API v7 key for Tier-2 web search fallback. |
+| `TAVILY_API_KEY` | *(empty)* | Tavily AI Search API key for Tier-2 web search fallback (replaces Bing). |
 | `PATHWAY_HOST` | `127.0.0.1` | Pathway VectorStore host address. |
 | `PATHWAY_PORT` | `8765` | Pathway VectorStore port. |
 | `PATHWAY_SOURCE_GLOB` | `data/pathway_sources/*.json` | File path glob pattern for Pathway to monitor. |

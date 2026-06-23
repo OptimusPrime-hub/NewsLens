@@ -15,7 +15,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from src.m2_agents.retrieval.base import BaseRetriever
-from src.m2_agents.retrieval.bing_client import BingRetriever
+from src.m2_agents.retrieval.tavily_client import TavilyRetriever
 from src.m2_agents.retrieval.local_client import LocalRetriever
 from src.m2_agents.retrieval.pathway_client import PathwayRetriever
 from src.m2_agents.retrieval.runtime import use_pathway_primary
@@ -35,9 +35,9 @@ logger = get_logger(__name__)
 def _default_retrievers() -> tuple[BaseRetriever, BaseRetriever, BaseRetriever]:
     """Pick the primary retriever based on platform and installed backends."""
     if use_pathway_primary():
-        return PathwayRetriever(), BingRetriever(), ScraperRetriever()
+        return PathwayRetriever(), TavilyRetriever(), ScraperRetriever()
     logger.info("Using in-process LocalRetriever as primary (Pathway unavailable)")
-    return LocalRetriever(), BingRetriever(), ScraperRetriever()
+    return LocalRetriever(), TavilyRetriever(), ScraperRetriever()
 
 
 class RetrievalManager:
@@ -63,7 +63,7 @@ class RetrievalManager:
         # Default retriever chain (can be overridden for testing)
         if retrievers is not None:
             self._primary = retrievers[0] if len(retrievers) > 0 else PathwayRetriever()
-            self._secondary = retrievers[1] if len(retrievers) > 1 else BingRetriever()
+            self._secondary = retrievers[1] if len(retrievers) > 1 else TavilyRetriever()
             self._tertiary = retrievers[2] if len(retrievers) > 2 else ScraperRetriever()
         else:
             self._primary, self._secondary, self._tertiary = _default_retrievers()

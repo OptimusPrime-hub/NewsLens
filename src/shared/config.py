@@ -37,6 +37,11 @@ class AppSettings(BaseSettings):
         description="Bing Search API v7 key",
     )
     bing_endpoint: str = Field(default="https://api.bing.microsoft.com/v7.0/search")
+    tavily_api_key: str = Field(
+        default="",
+        validation_alias=AliasChoices("TAVILY_API_KEY", "TAVILY_KEY"),
+        description="Tavily AI Search API key (Tier-2 retrieval fallback)",
+    )
 
     # Gemini-only model selection
     gemini_chat_model: str = Field(default="gemini-1.5-flash")
@@ -50,7 +55,7 @@ class AppSettings(BaseSettings):
     pathway_rss_refresh_interval_ms: int = Field(default=60000)
     news_sync_query: str = Field(default="world news top stories")
 
-    # Retrieval resilience demo controls. Example: "pathway,bing"
+    # Retrieval resilience demo controls. Example: "pathway,tavily,scraper"
     simulate_retrieval_failures: str = Field(default="")
 
     # CRAG thresholds

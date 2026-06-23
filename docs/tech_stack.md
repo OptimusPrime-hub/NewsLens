@@ -15,7 +15,7 @@ This document defines the actual technology stack implemented in the NewsLens re
 | **Sentiment Optional** | RoBERTa (`cardiffnlp/twitter-roberta-base-sentiment-latest`) | Deep learning CPU sentiment pipeline (enabled by setting `use_fallback_only=False` in `src/m3_bias/sentiment.py`). |
 | **NER / NLP** | spaCy `en_core_web_sm` | Used in M3 for entity salience naming. Falls back to regex-based capitalized word frequencies if model is missing. |
 | **News Source (Primary)** | NewsAPI.org & RSS Feeds | Polled via connectors to feed Pathway ingestion. |
-| **Web Search Fallback** | Bing Search API v7 | Tier-2 retrieval fallback client. |
+| **Web Search Fallback** | Tavily AI Search (`tavily-python`) | Tier-2 retrieval fallback — purpose-built for RAG; returns pre-filtered relevance-ranked snippets. |
 | **Scraper Fallback** | HTTPX + BeautifulSoup | Tier-3 fallback. Discovers URLs via Google News RSS search, decodes parameters via batch-execute, and chunks HTML paragraphs. |
 | **HTTP Client** | `httpx` | Async client for all external network requests. |
 | **Retry Logic** | `tenacity` | Exponential backoff for external news APIs, search APIs, and database requests. |
