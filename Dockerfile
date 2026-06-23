@@ -15,7 +15,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 RUN pip install --no-cache-dir poetry
 
 COPY pyproject.toml poetry.lock ./
-RUN poetry install --only main --no-ansi
+RUN poetry install --only main --no-ansi && \
+    python -m spacy download en_core_web_sm
 
 COPY . .
 
