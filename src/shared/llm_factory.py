@@ -1,13 +1,6 @@
-"""
-LLM provider factory with fallback chain.
-
-Returns LangChain BaseChatModel instances.
-Fallback order: Gemini → Ollama (local).
-"""
+"""Gemini LangChain chat model factory with API-key fallback."""
 
 from __future__ import annotations
-
-from typing import Literal
 
 from langchain_core.language_models.chat_models import BaseChatModel
 
@@ -17,172 +10,93 @@ from src.shared.logging import get_logger
 
 logger = get_logger(__name__)
 
-Provider = Literal["openai", "anthropic", "gemini", "ollama"]
+
+def _build_gemini_model(
+    api_key: str,
+    *,
+    model: str,
+    temperature: float,
+    purpose: str,
+    key_label: str,
+) -> BaseChatModel:
+    from langchain_google_genai import ChatGoogleGenerativeAI
+
+    logger.info(
+        "LLM provider ready",
+        provider="gemini",
+        model=model,
+        purpose=purpose,
+        key=key_label,
+    )
+    return ChatGoogleGenerativeAI(
+        model=model,
+        temperature=temperature,
+        google_api_key=api_key,
+    )
 
 
 def get_chat_model(
-    provider: Provider = "openai",
     model: str | None = None,
     temperature: float = 0.0,
-    purpose: Literal["m1", "m5"] = "m1",
+    purpose: str = "m1",
 ) -> BaseChatModel:
-    """
-    Instantiate a chat model for the requested provider.
-
-    Args:
-        provider: Which LLM backend to use.
-        model: Model name override (uses config default if None).
-        temperature: Sampling temperature.
-        purpose: What the LLM is being used for ("m1" or "m5").
-
-    Returns:
-        A LangChain BaseChatModel ready for `.ainvoke()`.
-
-    Raises:
-        LLMProviderUnavailableError: If the provider can't be initialised.
-    """
+    """Instantiate the configured Gemini chat model using the primary API key."""
     settings = get_settings()
+    keys = settings.gemini_api_keys
+    if not keys:
+        raise LLMProviderUnavailableError("GEMINI_API_KEY not set")
 
-    if provider == "openai":
-        default_model = settings.m1_llm_model if purpose == "m1" else settings.m5_llm_model
-        return _build_openai(model or default_model, temperature)
-    if provider == "anthropic":
-        return _build_anthropic(model or settings.secondary_chat_model, temperature)
-    if provider == "gemini":
-        return _build_gemini(model or settings.gemini_chat_model, temperature)
-    if provider == "ollama":
-        return _build_ollama(model or settings.local_chat_model, temperature, purpose)
-
-    raise LLMProviderUnavailableError(f"Unknown provider: {provider}")
+    selected_model = model or settings.gemini_chat_model
+    return _build_gemini_model(
+        keys[0],
+        model=selected_model,
+        temperature=temperature,
+        purpose=purpose,
+        key_label="primary",
+    )
 
 
 def get_chat_model_with_fallback(
     temperature: float = 0.0,
-    purpose: Literal["m1", "m5"] = "m1",
+    purpose: str = "m1",
 ) -> BaseChatModel:
-    """
-    Try Gemini → Ollama (local).  Return the first that initialises.
+    """Return Gemini chat model; automatically falls back to the secondary API key."""
+    settings = get_settings()
+    keys = settings.gemini_api_keys
+    if not keys:
+        raise LLMProviderUnavailableError("GEMINI_API_KEY not set")
 
-    Raises:
-        LLMProviderUnavailableError: If every provider fails.
-    """
-    errors: list[str] = []
-    for provider in ("gemini", "ollama"):
-        try:
-            llm = get_chat_model(provider=provider, temperature=temperature, purpose=purpose)  # type: ignore[arg-type]
-            logger.info("LLM provider ready", provider=provider, purpose=purpose)
-            return llm
-        except Exception as exc:  # noqa: BLE001
-            errors.append(f"{provider}: {exc}")
-            logger.warning("LLM provider unavailable", provider=provider, error=str(exc))
-
-    raise LLMProviderUnavailableError(
-        "All LLM providers unavailable",
-        details={"errors": errors},
+    selected_model = settings.gemini_chat_model
+    primary = _build_gemini_model(
+        keys[0],
+        model=selected_model,
+        temperature=temperature,
+        purpose=purpose,
+        key_label="primary",
     )
 
+    if len(keys) == 1:
+        return primary
 
-def get_active_model_name(purpose: Literal["m1", "m5"] = "m1") -> str:
-    """
-    Get the name of the active chat model from the fallback chain.
-    If all external LLM providers are unavailable, returns 'regex-fallback'.
-    """
+    secondary = _build_gemini_model(
+        keys[1],
+        model=selected_model,
+        temperature=temperature,
+        purpose=purpose,
+        key_label="fallback",
+    )
+    logger.info("Gemini fallback key configured", purpose=purpose)
+    return primary.with_fallbacks([secondary])
+
+
+def get_active_model_name(purpose: str = "m1") -> str:
+    """Return the active Gemini model name, or regex-fallback when unavailable."""
     try:
         llm = get_chat_model_with_fallback(purpose=purpose)
         if hasattr(llm, "model_name"):
-            return getattr(llm, "model_name")
+            return str(getattr(llm, "model_name"))
         if hasattr(llm, "model"):
-            return getattr(llm, "model")
+            return str(getattr(llm, "model"))
         return str(llm)
     except Exception:
         return "regex-fallback"
-
-
-# ── Private builder helpers ──────────────────────────────────────────────────
-
-
-def _build_openai(model: str, temperature: float) -> BaseChatModel:
-    settings = get_settings()
-    if not settings.openai_api_key:
-        raise LLMProviderUnavailableError("OPENAI_API_KEY not set")
-
-    from langchain_openai import ChatOpenAI
-
-    return ChatOpenAI(
-        model=model,
-        temperature=temperature,
-        api_key=settings.openai_api_key,
-    )
-
-
-def _build_anthropic(model: str, temperature: float) -> BaseChatModel:
-    settings = get_settings()
-    if not settings.anthropic_api_key:
-        raise LLMProviderUnavailableError("ANTHROPIC_API_KEY not set")
-
-    from langchain_anthropic import ChatAnthropic
-
-    return ChatAnthropic(
-        model=model,
-        temperature=temperature,
-        api_key=settings.anthropic_api_key,
-    )
-
-
-def _build_gemini(model: str, temperature: float) -> BaseChatModel:
-    settings = get_settings()
-    if not settings.gemini_api_key:
-        raise LLMProviderUnavailableError("GEMINI_API_KEY not set")
-
-    from langchain_google_genai import ChatGoogleGenerativeAI
-
-    return ChatGoogleGenerativeAI(
-        model=model,
-        temperature=temperature,
-        google_api_key=settings.gemini_api_key,
-    )
-
-
-def _get_available_ollama_models(base_url: str) -> list[str]:
-    import json
-    import urllib.request
-    try:
-        url = f"{base_url.rstrip('/')}/api/tags"
-        with urllib.request.urlopen(url, timeout=2.0) as response:
-            data = json.loads(response.read().decode())
-            return [m["name"] for m in data.get("models", [])]
-    except Exception:
-        return []
-
-
-def _build_ollama(model: str, temperature: float, purpose: str = "m1") -> BaseChatModel:
-    settings = get_settings()
-
-    available = _get_available_ollama_models(settings.ollama_base_url)
-
-    if purpose == "m1":
-        candidates = ["qwen2.5-coder:7b", "llama3.1:8b", "mistral:7b", "llama3.2:3b"]
-    else:
-        candidates = ["llama3.1:8b", "mistral:7b", "qwen2.5-coder:7b", "llama3.2:3b"]
-
-    if model and model not in candidates:
-        candidates.insert(0, model)
-
-    selected_model = settings.local_chat_model
-    for candidate in candidates:
-        if any(c in available for c in (candidate, candidate.split(":")[0])):
-            selected_model = candidate
-            break
-
-    logger.info("Selected local Ollama model", selected_model=selected_model, purpose=purpose)
-
-    try:
-        from langchain_ollama import ChatOllama
-    except ImportError:
-        from langchain_community.chat_models import ChatOllama  # type: ignore[no-redef]
-
-    return ChatOllama(
-        model=selected_model,
-        temperature=temperature,
-        base_url=settings.ollama_base_url,
-    )

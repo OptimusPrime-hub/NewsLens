@@ -2,11 +2,11 @@
 M0 — Embedder
 Converts ArticleChunk text into dense vector embeddings.
 
-Primary:  OpenAI text-embedding-3-small  (1536-dim)
-Fallback: sentence-transformers BAAI/bge-small-en-v1.5  (384-dim, local)
+Primary:  Google Gemini text-embedding-004 (768-dim, cloud)
+Fallback: Simple TF-IDF-like keyword vector (offline, no ML deps)
 
-The fallback activates automatically on any OpenAI API error so the
-pipeline continues without human intervention.
+The fallback activates automatically when GEMINI_API_KEY is absent
+so the pipeline continues without human intervention.
 """
 
 from __future__ import annotations
@@ -21,36 +21,30 @@ from src.shared.config import get_config
 
 config = get_config()
 
-EmbeddingBackend = Literal["openai", "local"]
+EmbeddingBackend = Literal["gemini", "keyword"]
 
 
 class Embedder:
     """
-    Embed texts using OpenAI or fall back to a local sentence-transformer.
+    Embed texts using Gemini cloud embeddings or fall back to keyword hashing.
     All methods return numpy float32 arrays of shape (N, dim).
     """
 
     def __init__(self) -> None:
-        self._openai_client = None
-        self._local_model = None
-        self._backend: EmbeddingBackend = "openai"
+        self._backend: EmbeddingBackend = "gemini" if config.gemini_api_keys else "keyword"
 
     # ------------------------------------------------------------------
     # Lazy initialisation
     # ------------------------------------------------------------------
 
-    def _get_openai(self):
-        if self._openai_client is None:
-            import openai  # noqa: PLC0415
-            self._openai_client = openai.OpenAI(api_key=config.openai_api_key)
-        return self._openai_client
+    def _get_gemini(self, api_key: str | None = None):
+        from langchain_google_genai import GoogleGenerativeAIEmbeddings
 
-    def _get_local(self):
-        if self._local_model is None:
-            logger.info(f"[Embedder] Loading local model: {config.local_embedding_model}")
-            from sentence_transformers import SentenceTransformer  # noqa: PLC0415
-            self._local_model = SentenceTransformer(config.local_embedding_model)
-        return self._local_model
+        key = api_key or config.gemini_api_keys[0]
+        return GoogleGenerativeAIEmbeddings(
+            model=config.gemini_embedding_model,
+            google_api_key=key,
+        )
 
     # ------------------------------------------------------------------
     # Core embedding methods
@@ -59,36 +53,49 @@ class Embedder:
     def embed_texts(self, texts: list[str]) -> np.ndarray:
         """
         Embed a list of strings. Returns float32 ndarray (N, dim).
-        Tries OpenAI first; silently switches to local on any error.
+        Tries Gemini cloud first; silently switches to keyword on any error.
         """
         if not texts:
-            return np.empty((0, 384), dtype=np.float32)
+            return np.empty((0, self.embedding_dim), dtype=np.float32)
 
-        if self._backend == "openai" and config.openai_api_key:
-            try:
-                return self._embed_openai(texts)
-            except Exception as exc:
-                logger.warning(f"[Embedder] OpenAI failed ({exc}); switching to local model")
-                self._backend = "local"
+        if self._backend == "gemini" and config.gemini_api_keys:
+            for index, api_key in enumerate(config.gemini_api_keys):
+                try:
+                    return self._embed_gemini(texts, api_key=api_key)
+                except Exception as exc:
+                    label = "primary" if index == 0 else "fallback"
+                    logger.warning(f"[Embedder] Gemini {label} key failed ({exc})")
+            logger.warning("[Embedder] All Gemini keys failed; switching to keyword fallback")
+            self._backend = "keyword"
 
-        return self._embed_local(texts)
+        return self._embed_keyword(texts)
 
-    def _embed_openai(self, texts: list[str]) -> np.ndarray:
-        client = self._get_openai()
-        resp = client.embeddings.create(
-            model=config.embedding_model,
-            input=texts,
-        )
-        vecs = [item.embedding for item in sorted(resp.data, key=lambda x: x.index)]
+    def _embed_gemini(self, texts: list[str], *, api_key: str) -> np.ndarray:
+        client = self._get_gemini(api_key)
+        vecs = client.embed_documents(texts)
         arr = np.array(vecs, dtype=np.float32)
-        logger.debug(f"[Embedder:OpenAI] Embedded {len(texts)} texts → shape {arr.shape}")
+        logger.debug(f"[Embedder:Gemini] Embedded {len(texts)} texts → shape {arr.shape}")
         return arr
 
-    def _embed_local(self, texts: list[str]) -> np.ndarray:
-        model = self._get_local()
-        arr = model.encode(texts, convert_to_numpy=True, show_progress_bar=False)
-        logger.debug(f"[Embedder:Local] Embedded {len(texts)} texts → shape {arr.shape}")
-        return arr.astype(np.float32)
+    def _embed_keyword(self, texts: list[str]) -> np.ndarray:
+        """
+        Simple hash-based keyword embedding fallback.
+        Projects each text into a fixed-dim vector using word hashing.
+        Not semantically meaningful but allows cosine similarity to work.
+        """
+        dim = 384
+        vecs = []
+        for text in texts:
+            vec = np.zeros(dim, dtype=np.float32)
+            words = text.lower().split()
+            for word in words:
+                idx = hash(word) % dim
+                vec[idx] += 1.0
+            norm = np.linalg.norm(vec) + 1e-9
+            vecs.append(vec / norm)
+        arr = np.array(vecs, dtype=np.float32)
+        logger.debug(f"[Embedder:Keyword] Embedded {len(texts)} texts → shape {arr.shape}")
+        return arr
 
     # ------------------------------------------------------------------
     # Convenience: embed chunks
@@ -117,4 +124,4 @@ class Embedder:
 
     @property
     def embedding_dim(self) -> int:
-        return 1536 if self._backend == "openai" else 384
+        return 768 if self._backend == "gemini" else 384
