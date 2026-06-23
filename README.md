@@ -137,11 +137,8 @@ Every `AnalysisResult` carries a full `agent_trace: list[TraceEntry]` so the web
 |-------|-----------|
 | **Streaming Runtime** | `pathway` >=0.14.0 — incremental computation, live VectorStore, pw.io connectors |
 | **Agent Orchestration** | `langgraph` >=0.2.0 — stateful multi-agent graphs with conditional routing |
-| **LLM (M1 Intent)** | `openai` `gpt-4o-mini` — fast, structured JSON output for intent classification |
-| **LLM (M5 Narrative)** | `openai` `gpt-4o` — high-quality explanation and bias narrative generation |
-| **LLM Fallback (Secondary)** | `anthropic` `claude-3-5-haiku` — separate failure domain from OpenAI |
-| **LLM Fallback (Tertiary)** | `gemini` `gemini-1.5-flash` — Google Generative AI fallback layer |
-| **LLM Fallback (Local)** | `ollama` + `llama3.2:3b` — fully offline, no external API dependency |
+| **Primary LLM** | `gemini` `gemini-1.5-flash` — Google Generative AI primary layer |
+| **Local LLM Fallback** | `ollama` + `llama3.2:3b` — fully offline local fallback model |
 | **Embeddings (Primary)** | `openai` `text-embedding-3-small` — 1536-dim, strong semantic quality |
 | **Embeddings (Fallback)** | `sentence-transformers` `BAAI/bge-small-en-v1.5` — local, no API key required |
 | **Sentiment Analysis** | `transformers` `cardiffnlp/twitter-roberta-base-sentiment-latest` — news-domain robust |
@@ -169,9 +166,9 @@ Every `AnalysisResult` carries a full `agent_trace: list[TraceEntry]` so the web
 
 - Python 3.12+ (tested on 3.14)
 - [Poetry](https://python-poetry.org/docs/#installation)
-- [Ollama](https://ollama.com) (optional — for local LLM fallback only)
+- [Ollama](https://ollama.com) (for local offline LLM fallback)
 - NewsAPI.ai API key ([free tier](https://newsapi.ai))
-- OpenAI API key ([platform.openai.com](https://platform.openai.com))
+- Google Gemini API key ([aistudio.google.com](https://aistudio.google.com))
 
 ### Installation
 
@@ -186,9 +183,20 @@ poetry install
 # 3. Pull spaCy model
 poetry run python -m spacy download en_core_web_trf
 
-# 4. (Optional) Pull local LLM fallback models
+# 4. Pull local LLM fallback models
 ollama pull llama3.2:3b        # Local LLM fallback (M1/M5)
-ollama pull qwen2.5-coder:7b   # Optional code/reasoning tasks
+
+### Ollama Setup Guide (Local Offline LLM)
+
+To set up local offline fallback capabilities:
+1. Download and install Ollama from [ollama.com](https://ollama.com/).
+2. Run the Ollama application on your local machine.
+3. Download the default model (`llama3.2:3b`) using your terminal:
+   ```bash
+   ollama pull llama3.2:3b
+   ```
+4. Verify the Ollama server is running by opening `http://localhost:11434` in your browser.
+5. In your `.env` file, ensure `OLLAMA_BASE_URL=http://localhost:11434` and `LOCAL_LLM_MODEL=llama3.2:3b` are configured.
 
 # 5. Start the Pathway ingestion pipeline (background process)
 poetry run python scripts/run_pathway_pipeline.py &
@@ -215,17 +223,12 @@ PATHWAY_PORT=8765
 PATHWAY_REFRESH_INTERVAL_MS=30000        # NewsAPI polling cadence (ms)
 PATHWAY_RSS_REFRESH_INTERVAL_MS=60000   # RSS polling cadence (ms)
 
-# --- LLM Providers ---
-OPENAI_API_KEY=your_openai_key
-M1_LLM_MODEL=gpt-4o-mini                # Intent classification (fast + cheap)
-M5_LLM_MODEL=gpt-4o                     # Narrative generation (high quality)
-M1_CONFIDENCE_THRESHOLD=0.80            # Minimum confidence to accept intent parse
+# --- LLM Provider ---
+GEMINI_API_KEY=your_gemini_key           # Google Gemini API Key
 
-# --- LLM Fallbacks ---
-ANTHROPIC_API_KEY=your_anthropic_key     # Secondary LLM provider
-GEMINI_API_KEY=your_gemini_key           # Tertiary LLM provider
+# --- LLM Fallback (Local) ---
 OLLAMA_BASE_URL=http://localhost:11434   # Local Ollama endpoint
-LOCAL_LLM_MODEL=llama3.2:3b             # Offline LLM fallback model
+LOCAL_LLM_MODEL=llama3.2:3b             # Offline local fallback model
 
 # --- Embeddings ---
 EMBEDDING_MODEL=text-embedding-3-small   # OpenAI embedding model
@@ -441,7 +444,7 @@ news-agentic-rag/
 │   └── shared/
 │       ├── __init__.py
 │       ├── config.py                    # pydantic-settings Config model
-│       ├── llm_factory.py               # LLM provider factory (OpenAI / Anthropic / Gemini / Ollama)
+│       ├── llm_factory.py               # LLM provider factory (Gemini / Ollama)
 │       ├── logging.py                   # loguru structured logger setup
 │       ├── exceptions.py                # Custom exception hierarchy
 │       ├── constants.py                 # Central system parameters and thresholds
@@ -508,9 +511,7 @@ M1 and M0 (background pipeline) are independent. M2 retrieval, M3, and M4 run se
 | Pathway VectorStore cold (0 results) | Empty result set | Trigger immediate RSS + NewsAPI refresh, retry query |
 | CRAG relevance below threshold | `mean(relevance_scores) < 0.72` | Rewrite query (Tier-1) → Bing Search (Tier-2) → Playwright (Tier-3) |
 | OpenAI Embedding API down | `openai.APIError` | Switch to local `BAAI/bge-small-en-v1.5` via `sentence-transformers` |
-| Gemini Chat API down | `Exception` | Route to `OpenAI GPT-4o-mini` / `gpt-4o` |
-| Gemini + OpenAI down | Chained exception | Route to `Anthropic Claude 3.5 Haiku` |
-| Gemini, OpenAI + Anthropic down | Chained exception | Local `llama3.2:3b` via Ollama; flagged in UI |
+| Gemini Chat API down | `Exception` | Local `llama3.2:3b` via Ollama; flagged in UI |
 | LLM JSON parse failure (M1) | `pydantic.ValidationError` | Regex extraction fallback; if fails → `CROSS_PUBLISHER_SUMMARY` default |
 | LangGraph max iterations exceeded | `iteration_count > MAX_ITER` | Return partial result with `INCOMPLETE` warning in agent trace |
 

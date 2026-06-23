@@ -825,9 +825,7 @@ class AnalyzeRequest(BaseModel):
 | **Bing Search API failure** | HTTP error / quota exceeded | Fallback to `playwright` headless scraper on top Google News results | Moderate | Slower retrieval (~8s), no structured metadata |
 | **Pathway VectorStore cold/empty** | Query returns 0 results | Trigger immediate RSS + NewsAPI refresh, then retry query | Moderate | 15–30s delay on first query |
 | **OpenAI Embedding API down** | `openai.APIError` | Switch to local `BAAI/bge-small-en-v1.5` via `sentence-transformers` | Low | Embedding quality slightly lower; no user-visible change |
-| **Gemini Chat API down** | `Exception` | Route to `OpenAI GPT-4o` as secondary LLM | Low | Slight latency increase |
-| **Gemini & OpenAI down** | Chained exception | Route to `Anthropic Claude 3.5 Haiku` as tertiary LLM | Low | Slight latency increase |
-| **Gemini, OpenAI & Anthropic down** | Chained exception | Fallback to locally-hosted `Llama-3.2-3B-Instruct` via `ollama` | High | Lower analysis quality; clearly flagged in UI |
+| **Gemini Chat API down** | `Exception` | Fallback to locally-hosted `Llama-3.2-3B-Instruct` via `ollama` | High | Lower analysis quality; clearly flagged in UI |
 | **CRAG mean relevance < threshold** | Relevance score check | Query rewriting (T=1) → Bing fallback (T=2) → Scraper (T=3) | Low–Moderate | Displayed fallback badge in UI |
 | **LLM generation hallucination flag** | Self-reflection node detects citation mismatch | Re-invoke generation with stricter grounding prompt; max 2 retries | Low | Slightly higher latency |
 | **LangGraph agent exceeds iteration limit** | `iteration_count > MAX_ITER` | Supervisor returns partial result with `INCOMPLETE` warning | High | User notified; partial results shown |
@@ -937,9 +935,8 @@ flowchart TD
 |---|---|---|---|
 | **Streaming Runtime** | `pathway` | ≥ 0.14.0 | Incremental computation; live VectorStore; mandated by problem statement |
 | **Agent Orchestration** | `langgraph` | ≥ 0.2.0 | Stateful multi-agent graphs; conditional routing; human-in-loop ready |
-| **LLM Provider (Primary)** | `openai` (`gpt-4o-mini` / `gpt-4o`) | Latest | Strong reasoning; structured JSON output; function calling |
-| **LLM Provider (Secondary)** | `anthropic` (`claude-3-5-haiku`) | Latest | Fallback; different failure domain from OpenAI |
-| **LLM Provider (Local)** | `ollama` + `Llama-3.2-3B` | Latest | Offline/self-hosted fallback; no external API dependency |
+| **LLM Provider (Primary)** | `gemini` (`gemini-1.5-flash`) | Latest | Strong reasoning; structured JSON output; high latency-efficiency |
+| **LLM Provider (Local Fallback)** | `ollama` + `Llama-3.2-3B` | Latest | Offline/self-hosted fallback; no external API dependency |
 | **Embeddings (Primary)** | `openai` `text-embedding-3-small` | Latest | High quality; 1536-dim |
 | **Embeddings (Fallback)** | `sentence-transformers` `BAAI/bge-small-en-v1.5` | Latest | Local; no API needed |
 | **Sentiment Analysis** | `transformers` `cardiffnlp/twitter-roberta-base-sentiment-latest` | Latest | News-domain robust; multilingual variants available |
@@ -1064,7 +1061,7 @@ news-agentic-rag/
 │   └── shared/
 │       ├── __init__.py
 │       ├── config.py                     # pydantic-settings Config model
-│       ├── llm_factory.py                # LLM provider factory (OpenAI/Anthropic/Gemini/Ollama)
+│       ├── llm_factory.py                # LLM provider factory (Gemini/Ollama)
 │       ├── logging.py                    # loguru structured logger setup
 │       ├── exceptions.py                 # Custom exception hierarchy
 │       ├── constants.py                  # Central system parameters and thresholds

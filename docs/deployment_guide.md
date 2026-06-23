@@ -35,7 +35,21 @@ Copy `.env.example` to `.env` and fill in values for external resources:
 
 ---
 
-## 3. Running Locally
+## 3. Ollama (Offline Local LLM) Setup Guide
+
+To run local offline LLM fallback scenarios:
+1. Download and install Ollama from [ollama.com](https://ollama.com/).
+2. Start the Ollama application on your local machine.
+3. Download the default model (`llama3.2:3b`) using your terminal:
+   ```bash
+   ollama pull llama3.2:3b
+   ```
+4. Ensure your local server is running by visiting `http://localhost:11434` in your browser.
+5. In your `.env` configuration file, verify that `OLLAMA_BASE_URL` is set to `http://localhost:11434` and `LOCAL_LLM_MODEL` is set to `llama3.2:3b`.
+
+---
+
+## 4. Running Locally
 
 ### 1. Install Dependencies
 ```bash
@@ -57,7 +71,7 @@ Visit `http://127.0.0.1:8000` in your web browser.
 
 ---
 
-## 4. In-Production / Docker Deployment
+## 5. In-Production / Docker Deployment
 
 ### Docker Build
 ```bash
