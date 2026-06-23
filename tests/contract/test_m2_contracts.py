@@ -34,10 +34,10 @@ def test_m2_orchestration_contracts():
         session_id=uuid4(),
         query_timestamp=datetime.now(tz=UTC),
         total_latency_ms=300,
-        retrieval_tier_used="pathway",
+        retrieval_tier_used="local",
         total_chunks_retrieved=10,
         total_chunks_used=6,
-        model_versions={"primary": "gpt-4o"},
+        model_versions={"primary": "gemini-1.5-flash"},
     )
 
     result = AnalysisResult(
@@ -61,4 +61,4 @@ def test_m2_orchestration_contracts():
     validated = AnalysisResult.model_validate_json(json_data)
     assert validated.intent == IntentType.CROSS_PUBLISHER_SUMMARY
     assert validated.summary_result.summary_text == "Agreement on details."
-    assert validated.metadata.retrieval_tier_used == "pathway"
+    assert validated.metadata.retrieval_tier_used == "local"
