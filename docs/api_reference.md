@@ -60,11 +60,11 @@ When running locally, the API server is available at:
       "session_id": "8b584d43-238d-4e92-8051-403bdf8faea3",
       "query_timestamp": "2026-06-23T02:40:43Z",
       "total_latency_ms": 3450,
-      "retrieval_tier_used": "scraper",
-      "total_chunks_retrieved": 15,
-      "total_chunks_used": 15,
+      "retrieval_tier_used": "local",
+      "total_chunks_retrieved": 5,
+      "total_chunks_used": 5,
       "model_versions": {
-        "primary": "regex-fallback"
+        "primary": "gemini-1.5-flash"
       }
     },
     "agent_trace": [
@@ -137,3 +137,17 @@ When running locally, the API server is available at:
   event: result
   data: { ... AnalysisResult JSON ... }
   ```
+
+---
+
+## 3. `retrieval_tier_used` values
+
+| Value | Meaning |
+|-------|---------|
+| `pathway` | Pathway VectorStoreServer (Docker/Linux) |
+| `local` | In-process demo/live store via `LocalRetriever` (Windows dev) |
+| `bing` | Bing Search API v7 fallback |
+| `scraper` | Google News RSS + web scraper fallback |
+| `none` | All tiers failed |
+
+Simulate tier failures for demos: set `SIMULATE_RETRIEVAL_FAILURES=pathway` in `.env`.

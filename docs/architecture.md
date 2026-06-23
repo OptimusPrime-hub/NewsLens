@@ -16,6 +16,84 @@
 8. [Directory Structure](#8-directory-structure)
 9. [Non-Functional Requirements](#9-non-functional-requirements)
 10. [Open Questions & Risks](#10-open-questions--risks)
+11. [Current Implementation Status](#11-current-implementation-status-june-2026)
+
+---
+
+## 11. Current Implementation Status (June 2026)
+
+> The sections below (§1–§10) describe the **design specification**. This section documents **what is actually implemented** in the repository today.
+
+### Deployment modes
+
+| Mode | Command | Pathway | Primary retriever |
+|------|---------|---------|-------------------|
+| Windows dev | `.\scripts\run_local.ps1` | Not native (Docker required for real Pathway) | `LocalRetriever` + seeded demo data |
+| Docker full stack | `docker compose up --build` | `pathway` service on :8765 | `PathwayRetriever` |
+| Linux native | `run_pathway_pipeline.py` + uvicorn | Native VectorStoreServer | `PathwayRetriever` |
+
+### Implemented retrieval cascade (`RetrievalManager`)
+
+```
+Tier 0: PathwayRetriever (Linux/Docker) OR LocalRetriever (Windows)
+Tier 1: QueryRewriter + Tier-0 retry (rewritten query propagates to Bing/Scraper)
+Tier 2: BingRetriever (Bing Search API v7)
+Tier 3: ScraperRetriever (Google News RSS + httpx + BeautifulSoup)
+```
+
+Simulation hook: `SIMULATE_RETRIEVAL_FAILURES=pathway,bing,scraper` → `failure_simulation.py`
+
+### Implemented LangGraph topology (`src/m2_agents/graph.py`)
+
+```
+supervisor → retrieve → crag_evaluate → {bias_agent | timeline_agent | summary_agent}
+         → validate → assemble_result
+```
+
+### LLM & embeddings (implemented)
+
+| Component | Primary | Fallback |
+|-----------|---------|----------|
+| Chat (M1/M2/M3/M5) | Gemini `gemini-1.5-flash` | `GEMINI_API_KEY_FALLBACK` via LangChain `.with_fallbacks()` |
+| M1 intent | Gemini structured output | Regex heuristic → `CROSS_PUBLISHER_SUMMARY` |
+| Embeddings (M0) | Gemini `text-embedding-004` | Keyword hash (384-dim) |
+| Sentiment (M3) | VADER (default) | Optional RoBERTa via transformers |
+| CRAG | Gemini per-chunk grading | All chunks → `AMBIGUOUS` |
+
+### M0 ingestion (implemented)
+
+- **Live sync:** `scripts/sync_news_sources.py` → `data/pathway_sources/*.json`
+- **Pathway server:** `scripts/run_pathway_pipeline.py` → `build_pathway_vector_server()`
+- **In-process store:** `IngestionPipeline` in `pipeline.py` (used by `LocalRetriever`)
+- **Demo seed:** `src/m0_ingestion/demo_data.py` (5 US–China trade articles)
+
+### Key source files
+
+| Concern | File |
+|---------|------|
+| Retrieval orchestration | `src/m2_agents/retrieval/manager.py` |
+| Platform detection | `src/m2_agents/retrieval/runtime.py` |
+| LangGraph assembly | `src/m2_agents/graph.py` |
+| Bias analysis | `src/m3_bias/engine.py` (called from `bias_agent.py`) |
+| FastAPI entry | `src/m5_ui/api/server.py` |
+| Config | `src/shared/config.py` |
+| Docker | `docker-compose.yml`, `Dockerfile` |
+
+### Tests (34 passing)
+
+- `tests/unit/test_retrieval_resilience.py` — cascade, rewrite, simulated failures
+- `tests/unit/test_m3_bias.py` — BiasEngine
+- `tests/contract/test_m*.py` — schema contracts
+
+### Design vs implementation gaps
+
+| Design doc reference | Actual implementation |
+|---------------------|----------------------|
+| Playwright scraper | `scraper_client.py` (httpx + BeautifulSoup) |
+| OpenAI embeddings | Gemini `text-embedding-004` |
+| Ollama LLM fallback | Regex/VADER/offline heuristics (no Ollama) |
+| Pathway DocumentStore | In-memory `document_store.py` dict |
+| `pw.io` streaming connectors | Polling scripts + JSON file watch |
 
 ---
 
@@ -822,10 +900,10 @@ class AnalyzeRequest(BaseModel):
 |---|---|---|---|---|
 | **NewsAPI.ai rate limit / down** | HTTP 429 / 503 + retry timeout (3 × 2s backoff) | Seamlessly switch to RSS feed polling; flag in `metadata.retrieval_tier_used` | Minimal | Slightly older data (≤5 min lag) |
 | **RSS feeds all stale (>2h)** | `max(publish_ts)` freshness check | Trigger Bing Search API for live web results | Moderate | Web-sourced data, no publisher metadata |
-| **Bing Search API failure** | HTTP error / quota exceeded | Fallback to `playwright` headless scraper on top Google News results | Moderate | Slower retrieval (~8s), no structured metadata |
-| **Pathway VectorStore cold/empty** | Query returns 0 results | Trigger immediate RSS + NewsAPI refresh, then retry query | Moderate | 15–30s delay on first query |
-| **OpenAI Embedding API down** | `openai.APIError` | Switch to local `BAAI/bge-small-en-v1.5` via `sentence-transformers` | Low | Embedding quality slightly lower; no user-visible change |
-| **Gemini Chat API down** | `Exception` | Fallback to locally-hosted `Llama-3.2-3B-Instruct` via `ollama` | High | Lower analysis quality; clearly flagged in UI |
+| **Bing Search API failure** | HTTP error / quota exceeded | Fallback to `ScraperRetriever` (Google News RSS + httpx/BeautifulSoup) | Moderate | Slower retrieval, scraped page text |
+| **Pathway VectorStore cold/empty** | Query returns 0 results / connection error | Escalate to Bing → Scraper; on Windows use `LocalRetriever` + demo seed | Moderate | Fallback tier shown in agent trace |
+| **Gemini embedding failure** | Exception in embedder | Switch to keyword hash embeddings (384-dim) | Low | Lower semantic quality for local store |
+| **Gemini Chat API down** | `LLMProviderUnavailableError` | Secondary `GEMINI_API_KEY_FALLBACK`; M1 regex fallback; CRAG → AMBIGUOUS | Moderate | Offline heuristics when all keys fail |
 | **CRAG mean relevance < threshold** | Relevance score check | Query rewriting (T=1) → Bing fallback (T=2) → Scraper (T=3) | Low–Moderate | Displayed fallback badge in UI |
 | **LLM generation hallucination flag** | Self-reflection node detects citation mismatch | Re-invoke generation with stricter grounding prompt; max 2 retries | Low | Slightly higher latency |
 | **LangGraph agent exceeds iteration limit** | `iteration_count > MAX_ITER` | Supervisor returns partial result with `INCOMPLETE` warning | High | User notified; partial results shown |
@@ -854,20 +932,19 @@ async def call_newsapi_with_fallback(query: str) -> list[RawArticle]:
 ### 5.3 Fallback Cascade Visual
 
 ```
-PRIMARY (Pathway VectorStore)
+PRIMARY: Pathway VectorStore (Linux/Docker) OR LocalRetriever (Windows)
       │ CRAG score < threshold?
       ▼
-TIER 1: Query Rewrite + Pathway Retry
+TIER 1: Query Rewrite + Primary Retry
       │ Still < threshold?
       ▼
 TIER 2: Bing Search API
       │ Bing unavailable?
       ▼
-TIER 3: Playwright Web Scraper
-      │ Scraper fails?
+TIER 3: httpx + BeautifulSoup Scraper (Google News RSS)
+      │ All tiers fail?
       ▼
-TIER 4: Return partial result with INCOMPLETE flag
-         (Never crash. Always return something.)
+Raise FallbackExhaustedError (caught by graph → empty chunks + offline agents)
 ```
 
 ---
