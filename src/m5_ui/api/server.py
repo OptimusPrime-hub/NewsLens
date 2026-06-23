@@ -40,6 +40,17 @@ def create_app() -> FastAPI:
 
     @app.on_event("startup")
     async def _startup() -> None:
+        from src.shared.config import get_settings
+
+        settings = get_settings()
+        if settings.seed_demo_data:
+            from src.m0_ingestion.demo_data import seed_demo_data
+            from src.m0_ingestion.pipeline import get_pipeline
+
+            pipeline = get_pipeline()
+            if pipeline.chunk_count == 0:
+                summary = seed_demo_data()
+                logger.info("Auto-seeded demo articles on startup", **{k: str(v) for k, v in summary.items()})
         logger.info("NewsLens M5 UI server started")
 
     return app

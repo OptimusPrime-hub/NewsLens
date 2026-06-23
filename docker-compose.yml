@@ -1,0 +1,51 @@
+services:
+  pathway:
+    build: .
+    container_name: newslens-pathway
+    command: python scripts/run_pathway_pipeline.py
+    env_file:
+      - .env
+    environment:
+      PATHWAY_HOST: 0.0.0.0
+      PATHWAY_PORT: 8765
+    ports:
+      - "8765:8765"
+    volumes:
+      - ./data/pathway_sources:/app/data/pathway_sources
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://127.0.0.1:8765/v1/retrieve", "-X", "POST", "-H", "Content-Type: application/json", "-d", "{\"query\":\"health\",\"k\":1}"]
+      interval: 15s
+      timeout: 10s
+      retries: 12
+      start_period: 45s
+    restart: unless-stopped
+
+  news-sync:
+    build: .
+    container_name: newslens-news-sync
+    command: python scripts/sync_news_sources.py
+    env_file:
+      - .env
+    volumes:
+      - ./data/pathway_sources:/app/data/pathway_sources
+    depends_on:
+      pathway:
+        condition: service_started
+    restart: unless-stopped
+
+  web:
+    build: .
+    container_name: newslens-web
+    command: uvicorn src.m5_ui.api.server:app --host 0.0.0.0 --port 8000
+    env_file:
+      - .env
+    environment:
+      PATHWAY_HOST: pathway
+      PATHWAY_PORT: 8765
+      SEED_DEMO_DATA: "false"
+    ports:
+      - "8000:8000"
+    depends_on:
+      pathway:
+        condition: service_healthy
+    restart: unless-stopped

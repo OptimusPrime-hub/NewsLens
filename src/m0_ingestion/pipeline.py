@@ -1,13 +1,12 @@
 """
 M0 — Pipeline
-Assembles the full live ingestion pipeline:
+Assembles the live ingestion pipeline:
   NewsAPI connector + RSS connector
   → Normalizer → Chunker → Embedder
-  → Pathway VectorStoreServer + DocumentStore
+  → in-process chunk store (used by LocalRetriever on Windows)
 
-Call `run()` to start the blocking pw.run() ingestion loop.
-This module is launched by scripts/run_pathway_pipeline.py as a
-separate background process.
+Pathway VectorStore indexing runs separately via:
+  scripts/sync_news_sources.py → scripts/run_pathway_pipeline.py
 """
 
 from __future__ import annotations
@@ -31,17 +30,10 @@ config = get_config()
 
 class IngestionPipeline:
     """
-    Orchestrates the full M0 data pipeline.
+    Orchestrates the M0 in-process ingestion pipeline.
 
-    Pathway integration note:
-    ─────────────────────────
-    When `use_pathway=True` (default when pathway is installed), the pipeline
-    feeds chunks into a Pathway VectorStoreServer so M2 can query live
-    embeddings via VectorStoreClient.
-
-    When Pathway is unavailable (e.g., during unit tests), the pipeline
-    stores embeddings in an in-process FAISS-like structure and the
-    VectorStoreClient falls back to it.
+    Populates an in-memory chunk store for LocalRetriever. Pathway indexing
+    is handled by scripts/run_pathway_pipeline.py over synced JSON files.
     """
 
     def __init__(self, default_query: str = "world news top stories") -> None:
@@ -66,12 +58,13 @@ class IngestionPipeline:
     # ------------------------------------------------------------------
 
     def _try_init_pathway(self) -> None:
-        try:
-            import pathway as pw  # noqa: F401
-            logger.info("[Pipeline] Pathway detected — VectorStoreServer will be used")
+        from src.m2_agents.retrieval.runtime import use_pathway_primary
+
+        if use_pathway_primary():
+            logger.info("[Pipeline] Pathway available — use run_pathway_pipeline.py for VectorStore")
             self._use_pathway = True
-        except ImportError:
-            logger.warning("[Pipeline] Pathway not installed — using in-process chunk store")
+        else:
+            logger.info("[Pipeline] Using in-process chunk store (Pathway runs in Docker on Windows)")
             self._use_pathway = False
 
     # ------------------------------------------------------------------
