@@ -51,7 +51,7 @@ def get_chat_model(
     if provider == "gemini":
         return _build_gemini(model or settings.gemini_chat_model, temperature)
     if provider == "ollama":
-        return _build_ollama(model or settings.local_chat_model, temperature)
+        return _build_ollama(model or settings.local_chat_model, temperature, purpose)
 
     raise LLMProviderUnavailableError(f"Unknown provider: {provider}")
 
@@ -143,13 +143,43 @@ def _build_gemini(model: str, temperature: float) -> BaseChatModel:
     )
 
 
-def _build_ollama(model: str, temperature: float) -> BaseChatModel:
+def _get_available_ollama_models(base_url: str) -> list[str]:
+    import json
+    import urllib.request
+    try:
+        url = f"{base_url.rstrip('/')}/api/tags"
+        with urllib.request.urlopen(url, timeout=2.0) as response:
+            data = json.loads(response.read().decode())
+            return [m["name"] for m in data.get("models", [])]
+    except Exception:
+        return []
+
+
+def _build_ollama(model: str, temperature: float, purpose: str = "m1") -> BaseChatModel:
     settings = get_settings()
+
+    available = _get_available_ollama_models(settings.ollama_base_url)
+
+    if purpose == "m1":
+        candidates = ["qwen2.5-coder:7b", "llama3.1:8b", "mistral:7b", "llama3.2:3b"]
+    else:
+        candidates = ["llama3.1:8b", "mistral:7b", "qwen2.5-coder:7b", "llama3.2:3b"]
+
+    if model and model not in candidates:
+        candidates.insert(0, model)
+
+    selected_model = settings.local_chat_model
+    for candidate in candidates:
+        if any(c in available for c in (candidate, candidate.split(":")[0])):
+            selected_model = candidate
+            break
+
+    logger.info("Selected local Ollama model", selected_model=selected_model, purpose=purpose)
 
     from langchain_community.chat_models import ChatOllama
 
     return ChatOllama(
-        model=model,
+        model=selected_model,
         temperature=temperature,
         base_url=settings.ollama_base_url,
     )
