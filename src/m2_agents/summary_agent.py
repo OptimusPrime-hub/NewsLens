@@ -12,14 +12,14 @@ from datetime import UTC, datetime
 
 from langchain_core.messages import HumanMessage, SystemMessage
 
-from src.m2_agents.prompts.summary import (
-    SUMMARY_SYSTEM_PROMPT,
-    build_summary_user_prompt,
-)
 from src.m2_agents.schemas import SummaryResult, TraceEntry
 from src.m2_agents.state import AgentState
 from src.shared.llm_factory import get_chat_model_with_fallback
 from src.shared.logging import get_logger
+from src.shared.prompts.summary import (
+    SUMMARY_SYSTEM_PROMPT,
+    build_summary_user_prompt,
+)
 
 logger = get_logger(__name__)
 

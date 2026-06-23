@@ -36,16 +36,10 @@ class QueryRewriter:
         """
         Produce a semantically enhanced version of the query.
 
-        Args:
-            original_query: The user's raw query that scored poorly.
-
-        Returns:
-            A rewritten query string optimised for vector retrieval.
-            Returns the original query unchanged if rewriting fails.
+        Returns the original query unchanged if rewriting fails or no LLM is configured.
         """
-        llm = await self._get_llm()
-
         try:
+            llm = await self._get_llm()
             messages = [
                 SystemMessage(content=REWRITE_SYSTEM_PROMPT),
                 HumanMessage(content=build_rewrite_user_prompt(original_query)),
