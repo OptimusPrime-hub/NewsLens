@@ -73,7 +73,8 @@ news-agentic-rag/
 │   │   ├── api/
 │   │   │   ├── __init__.py
 │   │   │   ├── server.py                # FastAPI app factory — mounts static, registers routes
-│   │   │   ├── routes.py                # GET /, /results, /about; POST /api/analyze, /api/analyze/stream
+│   │   │   ├── pathway_serve.py         # Pathway-native REST endpoint (pw.io.http.rest_connector)
+│   │   ├── routes.py                # GET /, /results, /about; POST /api/analyze, /api/analyze/stream
 │   │   │   ├── deps.py                  # Shared jinja2.Environment (bypasses Starlette Jinja2 cache bug)
 │   │   │   └── schemas.py               # AnalyzeRequest (M5 → M1/M2 API contract)
 │   │   ├── templates/
@@ -112,7 +113,9 @@ news-agentic-rag/
 │           ├── summary.py               # Prompts for consensus summary
 │           └── crag.py                  # Prompts for corrective retrieval
 ├── scripts/
+│   ├── benchmark.py                     # End-to-end latency benchmark — measures real query latencies
 │   ├── run_pathway_pipeline.py          # Starts M0 pw.run() background process
+│   ├── run_pathway_serve.py             # Starts Pathway-native REST endpoint (pw.io.http.rest_connector)
 │   ├── run_website.sh                   # Starts M5 FastAPI server via uvicorn
 │   └── seed_test_data.py                # Seeds Pathway store with fixture articles
 ├── docs/
@@ -121,9 +124,10 @@ news-agentic-rag/
 │   ├── data_contracts.md                # Pydantic v2 schema contracts
 │   ├── deployment_guide.md              # Docker / Render / production deployment guide
 │   ├── modules.md                       # M0–M5 module table
-│   ├── overview.md                      # Project overview and key features
+│   ├── overview.md                      # Project overview, key features, uniqueness vs existing solutions
 │   ├── performance.md                   # End-to-end latency and resilience table
 │   ├── project_structure.md             # This file — directory tree
+│   ├── responsible_ai.md                # Responsible AI guardrails and design decisions
 │   └── tech_stack.md                    # Technology stack with status notes
 └── tests/
     ├── __init__.py

@@ -47,6 +47,7 @@ curl -X POST http://127.0.0.1:8000/api/analyze \
 | [docs/deployment_guide.md](docs/deployment_guide.md) | **How to run** — install, `.env`, Docker, troubleshooting |
 | [docs/architecture.md](docs/architecture.md) | Full design specification + implementation status (§11) |
 | [docs/api_reference.md](docs/api_reference.md) | REST endpoints, SSE streaming, response examples |
+| [docs/responsible_ai.md](docs/responsible_ai.md) | Guardrails, LLM bounding, source attribution, confidence transparency |
 
 ---
 
@@ -58,7 +59,7 @@ flowchart LR
     M1 --> M2[M2 LangGraph]
     M2 --> RM[RetrievalManager]
     RM --> PW[Pathway / Local]
-    RM --> Bing[Bing API]
+    RM --> Tavily[Tavily AI]
     RM --> Scraper[Web Scraper]
     M2 --> CRAG[CRAG]
     CRAG --> Agents[Bias / Timeline / Summary]
@@ -107,7 +108,7 @@ Here is a working demonstration video of the NewsLens multi-agent news analysis 
 
 ![NewsLens Demo Video](docs/assets/images/demo_video.mp4)
 
-*(Judges: Replace the path above with your recorded MP4 walkthrough path when submitting).*
+*(Video will be added before final submission.)*
 
 ---
 

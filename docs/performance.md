@@ -15,7 +15,7 @@ This document details the actual latency estimations and resilience mechanisms i
 | Event extraction + timeline construction | M4 | 3–6s | Deduplicates and builds timeline chronology |
 | Narrative explanation generation | M5 | 2–5s | Builds consensus / divergence narrative text |
 | **Total (standard mode — Tier-0 hit)** | | **~10–27s** | Complete standard pipeline execution |
-| **Total (Bing fallback — Tier-2)** | | **~15–40s** | Slower due to search engine queries |
+| **Total (Tavily fallback — Tier-2)** | | **~15–40s** | Slower due to Tavily web search queries |
 | **Total (Scraper fallback — Tier-3)** | | **~20–60s** | Includes URL discovery and HTML fetching |
 
 *Note: M1 and M0 (background pipeline) are independent. M2 retrieval, M3, and M4 run sequentially within the LangGraph state machine. Pathway index freshness is maintained independently at a 30–60s polling cadence — queries always hit a live index, adding zero extra latency.*
@@ -27,8 +27,8 @@ This document details the actual latency estimations and resilience mechanisms i
 | Failure | Detection | Autonomous Recovery |
 |---|---|---|
 | **NewsAPI.org rate limit / down** | `HTTP 429/503` + 3x exponential backoff | Automatically falls back to RSS feed connector polling. |
-| **Pathway VectorStore unreachable** | Connection timeout | Switches to `LocalRetriever` (Windows dev) or escalates retrieval to Bing. |
-| **CRAG relevance below threshold** | `mean(relevance_scores) < 0.72` | Query rewrite (Tier-1) → Bing Search (Tier-2) → Google News RSS Scraper (Tier-3). |
+| **Pathway VectorStore unreachable** | Connection timeout | Switches to `LocalRetriever` (Windows dev) or escalates retrieval to Tavily AI Search. |
+| **CRAG relevance below threshold** | `mean(relevance_scores) < 0.72` | Query rewrite (Tier-1) → Tavily AI Search (Tier-2) → Google News RSS Scraper (Tier-3). |
 | **Gemini Embedding API down** | Exception on embedding call | Automatically switches to in-memory 384-dim word-hash keyword embeddings. |
 | **Gemini Chat API down** | Exception on chat model call | Falls back to offline regex query classification and VADER sentiment analyzer. |
 | **LLM JSON parse failure (M1)** | `pydantic.ValidationError` | Regex extraction fallback; if that fails, defaults to `CROSS_PUBLISHER_SUMMARY` class. |

@@ -4,7 +4,7 @@ Retrieval orchestrator with tiered fallback cascade.
 RetrievalManager owns ONLY the orchestration logic:
   Tier 0: Pathway VectorStore (Linux/Docker) or LocalRetriever (Windows)
   Tier 1: Query rewrite + primary retry
-  Tier 2: Bing Search API
+  Tier 2: Tavily AI Search
   Tier 3: Web scraper
 
 Each BaseRetriever handles its own HTTP/retry concerns.
@@ -82,7 +82,7 @@ class RetrievalManager:
 
         Returns:
             Tuple of (chunks, tier_name). tier_name is one of
-            'pathway', 'local', 'bing', or 'scraper'.
+            'pathway', 'local', 'tavily', or 'scraper'.
 
         Raises:
             FallbackExhaustedError: Only if every tier fails AND produces
@@ -111,10 +111,10 @@ class RetrievalManager:
                     )
                     return chunks, self._primary.tier_name
 
-        # ── Tier 2: Bing Search ──────────────────────────────────────────────
+        # ── Tier 2: Tavily AI Search ─────────────────────────────────────────
         chunks = await self._try_retriever(self._secondary, search_query, filter_dict)
         if chunks:
-            logger.info("Tier 2 succeeded", tier="bing", n_chunks=len(chunks))
+            logger.info("Tier 2 succeeded", tier=self._secondary.tier_name, n_chunks=len(chunks))
             return chunks, self._secondary.tier_name
 
         # ── Tier 3: Web scraper ──────────────────────────────────────────────

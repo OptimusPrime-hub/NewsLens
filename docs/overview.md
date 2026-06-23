@@ -66,7 +66,7 @@ Pathway `VectorStore` is the shared retrieval backbone, queried by M2 with live-
 | Feature | Description |
 |---|---|
 | **Live index** | Pathway's incremental computation engine keeps the vector index fresh within 60 seconds of article publication — no manual refresh |
-| **Autonomous fallback** | 4-tier retrieval cascade (Pathway/Local → Query Rewrite → Bing Search → RSS BeautifulSoup Scraper) — the agent decides when to escalate, no human intervention |
+| **Autonomous fallback** | 4-tier retrieval cascade (Pathway/Local → Query Rewrite → Tavily AI Search → RSS BeautifulSoup Scraper) — the agent decides when to escalate, no human intervention |
 | **CRAG grading** | Every retrieved chunk is graded RELEVANT / AMBIGUOUS / IRRELEVANT; only high-confidence chunks reach generation |
 | **Bias score formula** | $BiasScore = w1 \cdot \Delta Sentiment + w2 \cdot FramingDivergence + w3 \cdot \Delta EntitySalience$, normalized to $[-1, +1]$ |
 | **5-frame framing analysis** | LLM classifies publisher narrative into `CONFLICT` / `ECONOMIC` / `HUMAN_INTEREST` / `MORALITY` / `RESPONSIBILITY` frames |
@@ -100,6 +100,22 @@ Queries that fall below a confidence threshold of **0.80** are automatically rou
 4. **CRAG-first retrieval** — Every retrieved chunk is graded for relevance before it touches generation; ambiguous and irrelevant chunks are filtered out, not papered over.
 5. **Trace-first transparency** — Every reasoning step is captured in `AgentState.agent_trace` and surfaced in the UI; the system never produces a result that cannot be audited.
 6. **Strict modularity** — Every module communicates through Pydantic v2 data contracts; internals are independently replaceable without touching adjacent modules.
+
+---
+
+## Uniqueness vs Existing Solutions
+
+| Capability | AllSides | Ground News | Media Bias Fact Check | **NewsLens** |
+|---|---|---|---|---|
+| Real-time live news | ❌ Static database | ❌ Curated daily | ❌ Manual updates | ✅ Pathway live index (~60s freshness) |
+| Agentic retrieval | ❌ None | ❌ None | ❌ None | ✅ LangGraph 4-tier CRAG cascade |
+| Per-query bias analysis | ❌ Pre-assigned ratings | ✅ Per-article | ❌ Source-level only | ✅ Per-query, per-publisher, quantified |
+| Quantified bias formula | ❌ Qualitative labels | ❌ Qualitative | ❌ Qualitative | ✅ `w1·ΔSentiment + w2·FramingDiv + w3·ΔEntitySalience` |
+| Narrative framing analysis | ❌ None | ❌ None | ❌ None | ✅ 5-frame IPTC-inspired classifier |
+| Timeline synthesis | ❌ None | ❌ None | ❌ None | ✅ Multi-source chronological event extraction |
+| Autonomous fallback | ❌ None | ❌ None | ❌ None | ✅ 3-tier autonomous recovery (Tavily → Scraper) |
+| Source attribution | ❌ Source-level | ✅ Article links | ✅ Source labels | ✅ Chunk-level with CRAG grade + retrieval tier |
+| Open / auditable scores | ❌ Proprietary | ❌ Opaque | ❌ Proprietary | ✅ Deterministic formula, auditable trace |
 
 ---
 
