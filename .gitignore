@@ -33,6 +33,7 @@ dist/
 pathway_cache/
 pathway_tmp/
 *.persistent_storage
+data/pathway_sources/*.json
 
 # ── ML / Model Artifacts ─────────────────────────────────────────────────────
 models/
