@@ -135,24 +135,24 @@ Every `AnalysisResult` carries a full `agent_trace: list[TraceEntry]` so the web
 
 | Layer | Technology |
 |-------|-----------|
-| **Streaming Runtime** | `pathway` >=0.14.0 — incremental computation, live VectorStore, pw.io connectors |
+| **Streaming Runtime** | `pathway` >=0.14.0 — live VectorStore + poll-based ingestion fallback (**Linux/macOS only**; Windows uses in-process store) |
 | **Agent Orchestration** | `langgraph` >=0.2.0 — stateful multi-agent graphs with conditional routing |
 | **Primary LLM** | `gemini` `gemini-1.5-flash` — Google Generative AI primary layer |
-| **Local LLM Fallback** | `ollama` + `llama3.2:3b` — fully offline local fallback model |
+| **Local LLM Fallback** | `ollama` — auto-selects best installed model (`qwen2.5-coder:7b` → `llama3.1:8b` → `mistral:7b`) |
 | **Embeddings (Primary)** | `openai` `text-embedding-3-small` — 1536-dim, strong semantic quality |
 | **Embeddings (Fallback)** | `sentence-transformers` `BAAI/bge-small-en-v1.5` — local, no API key required |
 | **Sentiment Analysis** | `transformers` `cardiffnlp/twitter-roberta-base-sentiment-latest` — news-domain robust |
 | **Sentiment Fallback** | `vaderSentiment` — fast, rule-based, works offline |
-| **NER / NLP** | `spacy` `en_core_web_trf` >=3.7 — DATE/TIME entity extraction for timelines |
+| **NER / NLP** | `spacy` `en_core_web_sm` >=3.7 — DATE/TIME entity extraction for timelines (pure Python, no compiler needed) |
 | **News Source (Primary)** | `newsapi-python` (NewsAPI.ai) — 80k+ sources, real-time structured JSON |
 | **Web Search Fallback** | Bing Search API v7 — structured web results, Tier-2 fallback |
 | **Scraper Fallback** | `playwright` (async) — JS-rendered page support, Tier-3 fallback |
 | **HTTP Client** | `httpx` — async-first, retry support via `tenacity` |
 | **Retry Logic** | `tenacity` — exponential backoff for all external API calls |
 | **Data Validation** | `pydantic` v2 with strict validation across all 11 data contracts |
-| **UI Framework** | `fastapi` + Jinja2 | Latest | Lightweight ASGI server; serves HTML templates + REST `/api/analyze` |
-| **Frontend** | HTML5 + Vanilla CSS + Vanilla JS | — | No build step; zero npm dependencies; runs in any browser |
-| **Charts** | `Chart.js` (CDN) | >=4.0 | Client-side bias heatmap, framing radar, timeline — no server-side render |
+| **UI Framework** | `fastapi` + Jinja2 — Lightweight ASGI server; serves HTML templates + REST `/api/analyze` |
+| **Frontend** | HTML5 + Vanilla CSS + Vanilla JS — No build step; zero npm dependencies; runs in any browser |
+| **Charts** | `Chart.js` (CDN) >=4.0 — Client-side bias heatmap, framing radar, timeline |
 | **Logging** | `loguru` — structured logs, agent trace capture per session |
 | **Configuration** | `pydantic-settings` + `.env` — type-safe config, 12-factor compliant |
 | **Testing** | `pytest` + `pytest-asyncio` — full async test support |
@@ -180,15 +180,27 @@ cd newslens
 
 **Step 2 — Install dependencies**
 
-```bash
-poetry install
+> **Windows note:** `pathway` requires `pyarrow`, which must be installed from a pre-built
+> binary wheel on Windows (compiling from source requires cmake). Use the install script
+> below — it handles this automatically.
+
+```powershell
+# Windows (PowerShell) — recommended
+.\scripts\install.ps1
 ```
 
-**Step 3 — Download the spaCy NER model**
-
 ```bash
-poetry run python -m spacy download en_core_web_trf
+# Linux / macOS
+bash scripts/install.sh
 ```
+
+The script runs `poetry install`, installs `pyarrow` from a binary wheel (avoids cmake),
+installs `pathway`, and downloads the spaCy `en_core_web_sm` model — all in one shot.
+
+> **Windows note on Pathway:** Pathway's real-time `pw.run()` streaming is Linux/macOS only.
+> On Windows the pipeline automatically falls back to an in-process polling loop — the
+> web UI and all analysis features work identically, just without Pathway's incremental
+> computation engine.
 
 **Step 4 — Set up Ollama (local LLM fallback)**
 

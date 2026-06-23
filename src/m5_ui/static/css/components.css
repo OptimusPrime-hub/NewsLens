@@ -38,8 +38,13 @@
   color: var(--text-primary);
   box-shadow: 0 1px 8px rgba(0,0,0,0.3);
 }
+
+/* Tab panels — CRITICAL: block with no overflow leak */
 .tab-panel { display: none; }
-.tab-panel.active { display: block; animation: fadeIn var(--duration-base) var(--ease-snappy); }
+.tab-panel.active {
+  display: block;
+  animation: fadeIn var(--duration-base) var(--ease-snappy);
+}
 
 /* ── Badges ───────────────────────────────────────────────── */
 .badge {
@@ -136,6 +141,8 @@
 .timeline-track {
   overflow-x: auto; padding: var(--space-6) 0 var(--space-4);
   scrollbar-width: thin;
+  /* Prevent vertical expansion */
+  overflow-y: hidden;
 }
 .timeline-inner {
   display: flex; gap: var(--space-4); align-items: flex-start;
@@ -179,3 +186,22 @@
   background: repeating-linear-gradient(90deg, var(--accent-amber) 0 6px, transparent 6px 12px);
 }
 .timeline-gap-label { font-size: 0.65rem; color: var(--accent-amber); white-space: nowrap; }
+
+/* ── Bias chart containers — fixed height so Chart.js can't grow ── */
+.bias-chart-wrap {
+  position: relative;
+  width: 100%;
+  height: 240px;        /* explicit px height — required for maintainAspectRatio:false */
+  overflow: hidden;
+}
+
+/* Bias profile cards grid */
+.bias-profiles-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1rem;
+  /* Cap so many profiles don't push page endlessly */
+  max-height: 600px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+}

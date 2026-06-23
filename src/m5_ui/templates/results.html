@@ -152,14 +152,18 @@
           <div style="display:grid; grid-template-columns:1fr 1fr; gap:1.5rem; margin-bottom:1.5rem;">
             <div class="glass" style="padding:1.5rem;">
               <h4 style="margin-bottom:1rem;">Sentiment by Publisher</h4>
-              <canvas id="chart-sentiment" height="220"></canvas>
+              <div class="bias-chart-wrap">
+                <canvas id="chart-sentiment"></canvas>
+              </div>
             </div>
             <div class="glass" style="padding:1.5rem;">
               <h4 style="margin-bottom:1rem;">Framing Dimensions</h4>
-              <canvas id="chart-framing" height="220"></canvas>
+              <div class="bias-chart-wrap">
+                <canvas id="chart-framing"></canvas>
+              </div>
             </div>
           </div>
-          <div id="bias-profiles" class="stagger" style="display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:1rem;"></div>
+          <div id="bias-profiles" class="bias-profiles-grid stagger"></div>
         </div>
         <div id="bias-empty" class="hidden" style="text-align:center; padding:3rem; color:var(--text-muted);">
           Bias analysis is only available for BIAS_DETECTION queries.
