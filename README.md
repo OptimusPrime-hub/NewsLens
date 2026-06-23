@@ -172,19 +172,21 @@ Every `AnalysisResult` carries a full `agent_trace: list[TraceEntry]` so the web
 
 ### Installation
 
-```bash
-# 1. Clone
-git clone https://github.com/Shreyansh-Verma007/newslens.git
-cd newslens
+1. **Clone the repository**:
+   ```bash
+   git clone https://github.com/Shreyansh-Verma007/newslens.git
+   cd newslens
+   ```
 
-# 2. Install dependencies
-poetry install
+2. **Install dependencies**:
+   ```bash
+   poetry install
+   ```
 
-# 3. Pull spaCy model
-poetry run python -m spacy download en_core_web_trf
-
-# 4. Pull local LLM fallback models
-ollama pull llama3.2:3b        # Local LLM fallback (M1/M5)
+3. **Download the spaCy model**:
+   ```bash
+   poetry run python -m spacy download en_core_web_trf
+   ```
 
 ### Ollama Setup Guide (Local Offline LLM)
 
@@ -198,13 +200,32 @@ To set up local offline fallback capabilities:
 4. Verify the Ollama server is running by opening `http://localhost:11434` in your browser.
 5. In your `.env` file, ensure `OLLAMA_BASE_URL=http://localhost:11434` and `LOCAL_LLM_MODEL=llama3.2:3b` are configured.
 
-# 5. Start the Pathway ingestion pipeline (background process)
-poetry run python scripts/run_pathway_pipeline.py &
+### Running the Platform
 
-# 6. Launch the web server
-poetry run bash scripts/run_website.sh
-# Open http://localhost:8000
-```
+1. **Start the Pathway ingestion pipeline** (Terminal 1):
+   ```bash
+   poetry run python scripts/run_pathway_pipeline.py
+   ```
+
+2. **Launch the FastAPI web server** (Terminal 2):
+   - On Windows (PowerShell):
+     ```powershell
+     scripts/run_website.ps1
+     ```
+   - On Windows (CMD):
+     ```cmd
+     scripts/run_website.bat
+     ```
+   - On Linux/macOS:
+     ```bash
+     bash scripts/run_website.sh
+     ```
+   - Or run the uvicorn command directly:
+     ```bash
+     poetry run uvicorn src.m5_ui.api.server:app --reload --port 8000
+     ```
+
+Open `http://localhost:8000` in your web browser.
 
 ---
 
