@@ -27,19 +27,10 @@ def retry_llm(max_attempts: int = 3, min_wait: float = 2.0, max_wait: float = 10
     Decorator to retry LLM invocations with exponential backoff.
     Suitable for handling rate limits (429) or transient provider errors.
     """
-    from openai import APIError as OpenAIAPIError
-    # We catch common API errors
-    exceptions_to_retry = (OpenAIAPIError,)
-    try:
-        from anthropic import APIError as AnthropicAPIError
-        exceptions_to_retry += (AnthropicAPIError,)
-    except ImportError:
-        pass
-
     decorator = AsyncRetrying(
         stop=stop_after_attempt(max_attempts),
         wait=wait_exponential(multiplier=1.0, min=min_wait, max=max_wait),
-        retry=retry_if_exception_type(exceptions_to_retry),
+        retry=retry_if_exception_type(Exception),
         before_sleep=before_sleep_log(logger, "WARNING"),
         reraise=True,
     )

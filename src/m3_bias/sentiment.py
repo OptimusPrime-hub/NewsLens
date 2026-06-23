@@ -16,10 +16,11 @@ logger = get_logger(__name__)
 class SentimentAnalyzer:
     """
     Computes sentiment polarity scores for text.
-    Uses RoBERTa by default and falls back to VADER on import or download failure.
+    Uses lightweight VADER by default. RoBERTa remains available for local
+    experiments by passing use_fallback_only=False.
     """
 
-    def __init__(self, use_fallback_only: bool = False):
+    def __init__(self, use_fallback_only: bool = True):
         self.use_fallback_only = use_fallback_only
         self._vader_analyzer = None
 

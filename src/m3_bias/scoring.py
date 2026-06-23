@@ -32,18 +32,14 @@ def extract_entity_salience(text: str) -> dict[str, float]:
     if not text.strip():
         return {}
 
-    import spacy
-
     def load_spacy():
+        import spacy
+
         # Try primary transformer model first, fallback to small model
         try:
-            return spacy.load("en_core_web_trf")
+            return spacy.load("en_core_web_sm")
         except Exception:
-            try:
-                return spacy.load("en_core_web_sm")
-            except Exception:
-                # If neither is installed, return a dummy model or raise
-                return spacy.blank("en")
+            return spacy.blank("en")
 
     try:
         nlp = get_cached_model("spacy_ner_model", load_spacy)
