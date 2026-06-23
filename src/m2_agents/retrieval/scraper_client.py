@@ -125,41 +125,42 @@ class ScraperRetriever(BaseRetriever):
 
     async def _decode_google_news_url(self, source_url: str) -> str:
         try:
-            from urllib.parse import urlparse, quote
             import json
+            from urllib.parse import quote, urlparse
+
             from bs4 import BeautifulSoup
 
             url_parsed = urlparse(source_url)
             path = url_parsed.path.split("/")
             if not (url_parsed.hostname == "news.google.com" and len(path) > 1 and path[-2] in ["articles", "read"]):
                 return source_url
-            
+
             article_id = path[-1]
-            
+
             # 1. Fetch parameter page
             resp = await self._client.get(source_url)
             resp.raise_for_status()
-            
+
             soup = BeautifulSoup(resp.text, "html.parser")
             div = soup.find("div", attrs={"jscontroller": "aLI87"})
             if not div:
                 logger.warning(f"Failed to find div with jscontroller=aLI87 for url: {source_url}")
                 return source_url
-                
+
             signature = div.get("data-n-a-sg")
             timestamp = div.get("data-n-a-ts")
-            
+
             if not signature or not timestamp:
                 logger.warning(f"Missing signature or timestamp for url: {source_url}")
                 return source_url
-                
+
             # 2. Decode URL using batchexecute
             post_url = "https://news.google.com/_/DotsSplashUi/data/batchexecute"
             payload_data = [
                 "Fbv4je",
                 f'["garturlreq",[["X","X",["X","X"],null,null,1,1,"US:en",null,1,null,null,null,null,null,0,1],"X","X",1,[1,1,1],1,1,null,0,0,null,0],"{article_id}",{timestamp},"{signature}"]',
             ]
-            
+
             body = f"f.req={quote(json.dumps([[payload_data]]))}"
             post_resp = await self._client.post(
                 post_url,
@@ -167,10 +168,10 @@ class ScraperRetriever(BaseRetriever):
                 content=body
             )
             post_resp.raise_for_status()
-            
+
             text = post_resp.text.replace(")]}'", "").strip()
             data = json.loads(text)
-            
+
             resolved_json = data[0][2]
             resolved_data = json.loads(resolved_json)
             return resolved_data[1]

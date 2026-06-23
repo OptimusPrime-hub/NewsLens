@@ -117,14 +117,14 @@ def _generate_offline_summary(query: str, chunks: list) -> SummaryResult:
     pub_chunks = defaultdict(list)
     for c in chunks:
         pub_chunks[c.publisher].append(c.chunk_text.strip())
-        
+
     summary_parts = []
     summary_parts.append(f"Offline Heuristic Summary for: '{query}'")
     summary_parts.append("All LLM providers are offline. Showing article snippets from scraped sources:")
-    
+
     key_takeaways = []
     consensus_points = []
-    
+
     for pub, texts in pub_chunks.items():
         # Take first sentence of first chunk as a takeaway
         sentences = [s.strip() for s in texts[0].split('.') if s.strip()]
@@ -133,20 +133,20 @@ def _generate_offline_summary(query: str, chunks: list) -> SummaryResult:
             if len(takeaway) > 120:
                 takeaway = takeaway[:117] + "..."
             key_takeaways.append(f"{pub}: {takeaway}")
-            
+
         # Add summary section
         summary_parts.append(f"\n[{pub}]")
         for text in texts[:2]:  # top 2 chunks
-            lines = [l.strip() for l in text.split('\n') if l.strip()]
+            lines = [line.strip() for line in text.split('\n') if line.strip()]
             summary_parts.extend(lines[:2])  # top 2 lines of chunk
-            
+
     summary_text = "\n".join(summary_parts)
-    
+
     for c in chunks[:3]:
         sentences = [s.strip() for s in c.chunk_text.split('.') if s.strip()]
         if len(sentences) > 1:
             consensus_points.append(sentences[1])
-            
+
     return SummaryResult(
         summary_text=summary_text,
         consensus_points=consensus_points or ["No high-confidence consensus points identified offline."],

@@ -27,6 +27,7 @@ class AppSettings(BaseSettings):
     # ── LLM Providers ────────────────────────────────────────────────────────
     openai_api_key: str = Field(default="", description="OpenAI API key")
     anthropic_api_key: str = Field(default="", description="Anthropic API key")
+    gemini_api_key: str = Field(default="", description="Gemini API key")
     ollama_base_url: str = Field(
         default="http://localhost:11434",
         description="Ollama server URL for local LLM fallback",
@@ -41,6 +42,7 @@ class AppSettings(BaseSettings):
     m5_llm_model: str = Field(default="gpt-4o")
     primary_chat_model: str = Field(default="gpt-4o-mini")
     secondary_chat_model: str = Field(default="claude-3-5-haiku-20241022")
+    gemini_chat_model: str = Field(default="gemini-1.5-flash")
     local_chat_model: str = Field(default="llama3.2:3b")
     embedding_model: str = Field(default="text-embedding-3-small")
     local_embedding_model: str = Field(default="BAAI/bge-small-en-v1.5")

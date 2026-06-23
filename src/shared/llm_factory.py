@@ -2,7 +2,7 @@
 LLM provider factory with fallback chain.
 
 Returns LangChain BaseChatModel instances.
-Fallback order: OpenAI → Anthropic → Ollama (local).
+Fallback order: OpenAI → Anthropic → Gemini → Ollama (local).
 """
 
 from __future__ import annotations
@@ -17,7 +17,7 @@ from src.shared.logging import get_logger
 
 logger = get_logger(__name__)
 
-Provider = Literal["openai", "anthropic", "ollama"]
+Provider = Literal["openai", "anthropic", "gemini", "ollama"]
 
 
 def get_chat_model(
@@ -48,6 +48,8 @@ def get_chat_model(
         return _build_openai(model or default_model, temperature)
     if provider == "anthropic":
         return _build_anthropic(model or settings.secondary_chat_model, temperature)
+    if provider == "gemini":
+        return _build_gemini(model or settings.gemini_chat_model, temperature)
     if provider == "ollama":
         return _build_ollama(model or settings.local_chat_model, temperature)
 
@@ -59,13 +61,13 @@ def get_chat_model_with_fallback(
     purpose: Literal["m1", "m5"] = "m1",
 ) -> BaseChatModel:
     """
-    Try OpenAI → Anthropic → Ollama.  Return the first that initialises.
+    Try OpenAI → Anthropic → Gemini → Ollama.  Return the first that initialises.
 
     Raises:
         LLMProviderUnavailableError: If every provider fails.
     """
     errors: list[str] = []
-    for provider in ("openai", "anthropic", "ollama"):
+    for provider in ("openai", "anthropic", "gemini", "ollama"):
         try:
             llm = get_chat_model(provider=provider, temperature=temperature, purpose=purpose)  # type: ignore[arg-type]
             logger.info("LLM provider ready", provider=provider, purpose=purpose)
@@ -124,6 +126,20 @@ def _build_anthropic(model: str, temperature: float) -> BaseChatModel:
         model=model,
         temperature=temperature,
         api_key=settings.anthropic_api_key,
+    )
+
+
+def _build_gemini(model: str, temperature: float) -> BaseChatModel:
+    settings = get_settings()
+    if not settings.gemini_api_key:
+        raise LLMProviderUnavailableError("GEMINI_API_KEY not set")
+
+    from langchain_google_genai import ChatGoogleGenerativeAI
+
+    return ChatGoogleGenerativeAI(
+        model=model,
+        temperature=temperature,
+        google_api_key=settings.gemini_api_key,
     )
 
 
