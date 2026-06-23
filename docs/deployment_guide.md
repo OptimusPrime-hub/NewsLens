@@ -18,15 +18,13 @@ Copy `.env.example` to `.env` and fill in values for external resources:
 * `BING_SEARCH_API_KEY`: API key for Bing Search API v7 (Tier-2 search fallback).
 
 ### LLM Configurations
-* `OPENAI_API_KEY`: API key for OpenAI.
-* `M1_LLM_MODEL`: Primary chat model for M1 intent classification (defaults to `gpt-4o-mini`).
-* `M5_LLM_MODEL`: Primary chat model for M5 narrative summaries and analysis (defaults to `gpt-4o`).
+* `GEMINI_API_KEY`: API key for Google Gemini (primary LLM provider).
+* `OPENAI_API_KEY`: API key for OpenAI (Tier-2 LLM provider fallback).
+* `ANTHROPIC_API_KEY`: API key for Anthropic (Tier-3 LLM provider fallback).
+* `OLLAMA_BASE_URL`: Port/host endpoint for a local Ollama instance (defaults to `http://localhost:11434` - Tier-4 local fallback).
+* `M1_LLM_MODEL`: Chat model for M1 intent classification when OpenAI is active (defaults to `gpt-4o-mini`).
+* `M5_LLM_MODEL`: Chat model for M5 narrative summaries when OpenAI is active (defaults to `gpt-4o`).
 * `M1_CONFIDENCE_THRESHOLD`: Confidence threshold to accept parsed intents (defaults to `0.80`).
-
-### LLM Fallbacks & Local Providers
-* `ANTHROPIC_API_KEY`: API key for Anthropic (Tier-2 LLM provider fallback).
-* `GEMINI_API_KEY`: API key for Google Gemini (Tier-3 LLM provider fallback).
-* `OLLAMA_BASE_URL`: Port/host endpoint for a local Ollama instance (defaults to `http://localhost:11434`).
 * `LOCAL_LLM_MODEL`: Model name for Ollama fallback (defaults to `llama3.2:3b`).
 
 ### Pathway VectorStore

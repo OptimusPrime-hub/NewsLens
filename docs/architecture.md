@@ -825,9 +825,9 @@ class AnalyzeRequest(BaseModel):
 | **Bing Search API failure** | HTTP error / quota exceeded | Fallback to `playwright` headless scraper on top Google News results | Moderate | Slower retrieval (~8s), no structured metadata |
 | **Pathway VectorStore cold/empty** | Query returns 0 results | Trigger immediate RSS + NewsAPI refresh, then retry query | Moderate | 15–30s delay on first query |
 | **OpenAI Embedding API down** | `openai.APIError` | Switch to local `BAAI/bge-small-en-v1.5` via `sentence-transformers` | Low | Embedding quality slightly lower; no user-visible change |
-| **OpenAI Chat API down** | `openai.APIError` | Route to `Anthropic Claude 3.5 Haiku` as secondary LLM | Low | Slight latency increase |
-| **OpenAI & Anthropic down** | Chained exception | Route to `Google Gemini 1.5 Flash` as tertiary LLM | Low | Slight latency increase |
-| **OpenAI, Anthropic & Gemini down** | Chained exception | Fallback to locally-hosted `Llama-3.2-3B-Instruct` via `ollama` | High | Lower analysis quality; clearly flagged in UI |
+| **Gemini Chat API down** | `Exception` | Route to `OpenAI GPT-4o` as secondary LLM | Low | Slight latency increase |
+| **Gemini & OpenAI down** | Chained exception | Route to `Anthropic Claude 3.5 Haiku` as tertiary LLM | Low | Slight latency increase |
+| **Gemini, OpenAI & Anthropic down** | Chained exception | Fallback to locally-hosted `Llama-3.2-3B-Instruct` via `ollama` | High | Lower analysis quality; clearly flagged in UI |
 | **CRAG mean relevance < threshold** | Relevance score check | Query rewriting (T=1) → Bing fallback (T=2) → Scraper (T=3) | Low–Moderate | Displayed fallback badge in UI |
 | **LLM generation hallucination flag** | Self-reflection node detects citation mismatch | Re-invoke generation with stricter grounding prompt; max 2 retries | Low | Slightly higher latency |
 | **LangGraph agent exceeds iteration limit** | `iteration_count > MAX_ITER` | Supervisor returns partial result with `INCOMPLETE` warning | High | User notified; partial results shown |

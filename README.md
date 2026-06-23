@@ -508,9 +508,9 @@ M1 and M0 (background pipeline) are independent. M2 retrieval, M3, and M4 run se
 | Pathway VectorStore cold (0 results) | Empty result set | Trigger immediate RSS + NewsAPI refresh, retry query |
 | CRAG relevance below threshold | `mean(relevance_scores) < 0.72` | Rewrite query (Tier-1) → Bing Search (Tier-2) → Playwright (Tier-3) |
 | OpenAI Embedding API down | `openai.APIError` | Switch to local `BAAI/bge-small-en-v1.5` via `sentence-transformers` |
-| OpenAI Chat API down | `openai.APIError` | Route to `Anthropic Claude 3.5 Haiku` |
-| OpenAI + Anthropic down | Chained exception | Route to `Google Gemini 1.5 Flash` |
-| OpenAI, Anthropic + Gemini down | Chained exception | Local `llama3.2:3b` via Ollama; flagged in UI |
+| Gemini Chat API down | `Exception` | Route to `OpenAI GPT-4o-mini` / `gpt-4o` |
+| Gemini + OpenAI down | Chained exception | Route to `Anthropic Claude 3.5 Haiku` |
+| Gemini, OpenAI + Anthropic down | Chained exception | Local `llama3.2:3b` via Ollama; flagged in UI |
 | LLM JSON parse failure (M1) | `pydantic.ValidationError` | Regex extraction fallback; if fails → `CROSS_PUBLISHER_SUMMARY` default |
 | LangGraph max iterations exceeded | `iteration_count > MAX_ITER` | Return partial result with `INCOMPLETE` warning in agent trace |
 

@@ -2,7 +2,7 @@
 LLM provider factory with fallback chain.
 
 Returns LangChain BaseChatModel instances.
-Fallback order: OpenAI → Anthropic → Gemini → Ollama (local).
+Fallback order: Gemini → OpenAI → Anthropic → Ollama (local).
 """
 
 from __future__ import annotations
@@ -61,13 +61,13 @@ def get_chat_model_with_fallback(
     purpose: Literal["m1", "m5"] = "m1",
 ) -> BaseChatModel:
     """
-    Try OpenAI → Anthropic → Gemini → Ollama.  Return the first that initialises.
+    Try Gemini → OpenAI → Anthropic → Ollama.  Return the first that initialises.
 
     Raises:
         LLMProviderUnavailableError: If every provider fails.
     """
     errors: list[str] = []
-    for provider in ("openai", "anthropic", "gemini", "ollama"):
+    for provider in ("gemini", "openai", "anthropic", "ollama"):
         try:
             llm = get_chat_model(provider=provider, temperature=temperature, purpose=purpose)  # type: ignore[arg-type]
             logger.info("LLM provider ready", provider=provider, purpose=purpose)
